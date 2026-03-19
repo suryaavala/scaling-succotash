@@ -1,18 +1,37 @@
-# Development Guide
+# Development & Etiquette Guide
 
-## Environment Setup
-Follow instructions in `README.md` to run `docker compose up -d` and set up the Python environment using `venv`. Ensure that `GEMINI_API_KEY` is set in the `.env` file.
+## Repository Structure
+```
+project_root/
+├── app/
+│   ├── api/
+│   │   └── routers/    (search.py, tags.py)
+│   ├── core/           (opensearch_client.py)
+│   ├── models/         (schemas.py)
+│   └── services/       (agent_service.py, intelligence_service.py, search_service.py)
+├── data/               (contains companies.csv sample)
+├── docs/               (project documentation)
+├── frontend/           (app.py - Streamlit UI)
+├── scripts/            (ingest_data.py)
+└── tests/              (pytest execution suites)
+```
 
-## Phase Strategy
-The repository is built iteratively following structured phases:
-- **Phase 1**: Infrastructure (Docker, FastAPI skeleton)
-- **Phase 2**: OpenSearch Schema & chunked Polars ingestion script
-- **Phase 3**: Deterministic Search API (Standard DSL logic)
-- **Phase 4**: Intelligence Layer (Agentic search using LiteLLM/Gemini)
-- **Phase 5**: Tagging API
-- **Phase 6**: Streamlit UI
+## Pull Request Strategy Implementation
+All features were strictly built across modular Feature branches matching the initial architectural spec:
+- `feature/phase1-infrastructure`
+- `feature/phase2-ingestion`
+- `feature/phase3-search`
+- `feature/phase4-intelligence`
+- `feature/phase5-tagging`
+- `feature/phase6-ui`
+This git etiquette ensures logical separation of concerns. Do not bypass PR reviews on branch merges.
 
-All code should follow semantic commit guidelines (`feat:`, `chore:`, `fix:`).
+## Executing Tests
+We utilize `pytest` paired with `unittest.mock` paradigms to bypass live LLM networking bounds.
 
-## Testing
-When adding new functionality, append test suites in `tests/`. Currently leveraging `pytest` and `httpx`.
+Run tests from the project root:
+```bash
+source venv/bin/activate
+PYTHONPATH=. pytest tests/
+```
+Ensure all test cases pass before considering a pull request stable.
