@@ -30,3 +30,6 @@ async def log_requests(request: Request, call_next):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+from app.api.routers import search
+app.include_router(search.router)
