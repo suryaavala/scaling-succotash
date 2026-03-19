@@ -49,3 +49,31 @@ async def standard_search(request: SearchRequest):
     except TransportError as e:
         logger.error(f"OpenSearch Transport Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Search query failed")
+
+from pydantic import BaseModel
+from app.services.intelligence_service import extract_intent, hybrid_search
+from app.services.agent_service import synthesize_agent_response
+
+class IntelligentSearchRequest(BaseModel):
+    query: str
+
+class IntelligentSearchResponse(BaseModel):
+    agentic_answer: str | None = None
+    search_results: SearchResponse | None = None
+
+@router.post("/intelligent", response_model=IntelligentSearchResponse)
+async def intelligent_search(request: IntelligentSearchRequest):
+    intent = extract_intent(request.query)
+    
+    search_response = hybrid_search(request.query, intent)
+    
+    if intent.requires_agent:
+        answer = synthesize_agent_response(request.query, search_response.results)
+        return IntelligentSearchResponse(
+            agentic_answer=answer,
+            search_results=search_response
+        )
+    else:
+        return IntelligentSearchResponse(
+            search_results=search_response
+        )
