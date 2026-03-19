@@ -190,14 +190,14 @@ The tagging system is strictly implemented on the backend datastore avoiding ine
 
 ```mermaid
 sequenceDiagram
-    participant UI as frontend/app.py
-    participant API as tags.py
-    participant OS as OpenSearch
+    participant UI as "frontend/app.py"
+    participant API as "tags.py"
+    participant OS as "OpenSearch"
     
     UI->>API: POST /api/v1/companies/123/tags {"tag": "competitor"}
     API->>API: Validate tag string
     API->>OS: client.update(id="123", body={script: Painless})
-    note right of API: Painless Script logic:<br/>if (tags == null) init List;<br/>if (!tags.contains) add tag;
+    Note right of API: Painless Script logic: if (tags == null) init List, if (!tags.contains) add tag
     OS-->>API: 200 OK (Updated Document)
     API-->>UI: 200 OK
 ```
@@ -210,17 +210,17 @@ To solve the 7 million row out-of-memory bottleneck defined in the specs, ingest
 
 ```mermaid
 flowchart LR
-    CSV[(data/companies.csv)] -->|pl.read_csv_batched<br/>batch_size=5000| Loop[While chunk in batches]
+    CSV[("data/companies.csv")] -->|"pl.read_csv_batched<br/>batch_size=5000"| Loop["While chunk in batches"]
     
-    subgraph Python Chunking Loop [ingest_data.py]
-    Loop --> Clean[Lowercasing & Cast Ints]
-    Clean --> StringMerge[concat: name+industry+locality]
-    StringMerge -->|Encode| STrans[SentenceTransformers<br/>encode(batch)]
-    STrans --> BuildDoc[Build OpenSearch JSON Doc]
-    Clean --> BuildDoc
+    subgraph ChunkingLoop ["ingest_data.py"]
+        Loop --> Clean["Lowercasing & Cast Ints"]
+        Clean --> StringMerge["concat: name+industry+locality"]
+        StringMerge -->|"Encode"| STrans["SentenceTransformers<br/>encode(batch)"]
+        STrans --> BuildDoc["Build OpenSearch JSON Doc"]
+        Clean --> BuildDoc
     end
     
-    BuildDoc -->|Bulk API actions| OS[(OpenSearch <br/>index: companies)]
+    BuildDoc -->|"Bulk API actions"| OS[("OpenSearch <br/>index: companies")]
     
     OS --> Loop
 ```
