@@ -1,6 +1,10 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../inference_service')))
+
 import pytest
 from fastapi.testclient import TestClient
-from inference_service.app.main import app
+from app.main import app
 
 client = TestClient(app)
 
