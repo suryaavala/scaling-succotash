@@ -42,6 +42,9 @@ with st.sidebar:
     year_from = st.number_input("Founded From", min_value=1800, max_value=2026, value=1900)
     year_to = st.number_input("Founded To", min_value=1800, max_value=2026, value=2026)
     
+    tag_options = [""] + st.session_state.tags
+    tag_filter = st.selectbox("Filter by Tag", tag_options)
+    
     if st.button("Apply Filters"):
         payload = {}
         if name_filter: payload["name"] = name_filter
@@ -50,6 +53,7 @@ with st.sidebar:
         if country_filter: payload["country"] = country_filter
         if year_from: payload["year_from"] = year_from
         if year_to: payload["year_to"] = year_to
+        if tag_filter: payload["tags"] = [tag_filter]
         
         try:
             r = requests.post(f"{API_URL}/search", json=payload)

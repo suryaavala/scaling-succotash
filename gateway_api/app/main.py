@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from app.routers import search
+from app.routers import search, async_tasks, tags
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")
@@ -14,6 +14,6 @@ setup_telemetry(app, "gateway_api")
 async def health_check():
     return {"status": "ok"}
 
-from app.routers import async_tasks
 app.include_router(search.router)
 app.include_router(async_tasks.router)
+app.include_router(tags.router)

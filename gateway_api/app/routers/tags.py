@@ -3,9 +3,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 from opensearchpy.exceptions import NotFoundError
-from app.core.opensearch_client import get_opensearch_client, INDEX_NAME
+from app.services.opensearch_client import get_opensearch_client, INDEX_NAME
 
-router = APIRouter(prefix="/api/v1", tags=["Tags"])
+router = APIRouter(prefix="/api/v2", tags=["Tags V2"])
 logger = logging.getLogger("api")
 
 class TagRequest(BaseModel):

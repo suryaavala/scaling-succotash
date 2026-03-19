@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from app.models.schemas import SearchRequest
-from app.core.opensearch_client import INDEX_NAME
+from app.services.opensearch_client import INDEX_NAME
 
 def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     """Translates the standard SearchRequest into OpenSearch Boolean DSL."""
@@ -20,6 +20,10 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     if request.country:
         filter_clauses.append({"term": {"country": request.country.lower()}})
         
+    if request.tags:
+        for tag in request.tags:
+            filter_clauses.append({"term": {"tags": tag}})
+            
     # Handle year ranges
     year_range = {}
     if request.year_from:

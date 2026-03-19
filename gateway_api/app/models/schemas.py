@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 class Company(BaseModel):
     id: str
@@ -19,6 +19,7 @@ class SearchRequest(BaseModel):
     country: Optional[str] = None
     year_from: Optional[int] = None
     year_to: Optional[int] = None
+    tags: List[str] = []
     page: int = 1
     size: int = 20
 
