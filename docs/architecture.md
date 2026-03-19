@@ -48,9 +48,9 @@ graph TD
     
     %% Intelligent Path
     SearchRouter -->|POST /api/v1/search/intelligent| IntelSvc
-    IntelSvc -->|extract_intent(query)| Gemini
-    IntelSvc -->|encode(query)| STransformer
-    IntelSvc -->|hybrid_search(intent, vector)| OS
+    IntelSvc -->|"extract_intent(query)"| Gemini
+    IntelSvc -->|"encode(query)"| STransformer
+    IntelSvc -->|"hybrid_search(intent, vector)"| OS
     
     %% Agentic Path
     SearchRouter -->|requires_agent=True| AgentSvc
@@ -167,7 +167,7 @@ sequenceDiagram
     Intel-->>Router: SearchResponse (Base Candidates)
     
     %% Agentic Branch
-    alt if requires_agent == True (from IntentSchema)
+    opt requires_agent == True (from IntentSchema)
         Router->>Agent: synthesize_agent_response(query, Base Candidates)
         
         loop For Top 5 Candidates
@@ -216,7 +216,8 @@ flowchart LR
     Loop --> Clean[Lowercasing & Cast Ints]
     Clean --> StringMerge[concat: name+industry+locality]
     StringMerge -->|Encode| STrans[SentenceTransformers<br/>encode(batch)]
-    STrans & Clean --> BuildDoc[Build OpenSearch JSON Doc]
+    STrans --> BuildDoc[Build OpenSearch JSON Doc]
+    Clean --> BuildDoc
     end
     
     BuildDoc -->|Bulk API actions| OS[(OpenSearch <br/>index: companies)]
