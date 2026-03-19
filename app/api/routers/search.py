@@ -47,6 +47,7 @@ async def standard_search(request: SearchRequest):
         logger.error(f"OpenSearch Connection Error: {str(e)}")
         raise HTTPException(status_code=503, detail="Search service unavailable")
     except TransportError as e:
+        logger.error(f"OpenSearch Transport Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Search query failed")
 
 from pydantic import BaseModel
