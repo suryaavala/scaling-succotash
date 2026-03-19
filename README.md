@@ -1,56 +1,44 @@
-# Enterprise B2B Company Search & Intelligence API
+# Enterprise B2B Company Search & Intelligence API (V2 Architecture)
 
 ## Overview
-This repository contains a full-stack, production-grade search system for B2B company data. It includes a high-throughput deterministic search API, an intelligent agentic routing layer leveraging Gemini models, dynamic tagging, and a Streamlit dashboard.
+This repository contains a production-grade, distributed microservices architecture for B2B company search. The V2 architecture strictly isolates CPU-heavy ML inference and asynchronous LLM agent workflows from the I/O-bound Web API gateway, ensuring high availability and horizontal scalability.
 
-## Features
-- **Deterministic Search**: Fast, filter-based OpenSearch boolean DSL queries capable of processing 60 RPS.
-- **Intelligent Query Understanding**: Extracts complex intent from natural language (e.g., "tech companies in California") using structured LLM outputs (`gemini-3.1-flash-lite-preview`).
-- **Semantic Fallback**: Uses local sentence-transformers (`all-MiniLM-L6-v2`) to perform Hybrid vector search when keyword filtering fails to match concepts.
-- **Mock Agentic Search**: Autonomously searches simulated external news data for complex queries.
-- **Dynamic Tagging**: Persist custom organizational tags to companies using OpenSearch Painless scripting.
-- **Streaming Ingestion**: Highly memory-efficient data chunking pipeline powered by Polars.
+## Architecture Stack
+- **Gateway API**: High-throughput FastAPI handling web routing and orchestration.
+- **Inference Service**: Isolated PyTorch container running `SentenceTransformers` and Cross-Encoder ranking.
+- **Asynchronous Workers**: Celery + Redis for deep agentic LLM synthesis jobs.
+- **Datastore**: OpenSearch 2.11 (capped intelligently to 1GB RAM natively).
+- **Intelligence**: LiteLLM (Gemini 3.1 Flash Lite) parsed through strict Pydantic JSON enforcement.
+- **Caching**: Semantic intent caching mapping raw user questions to bypass LLM timeouts.
+- **Observability**: OpenTelemetry distributed tracing exported to a native Jaeger instance.
 
-## Technical Stack
-- **Backend Framework**: FastAPI, Pydantic, Uvicorn
-- **Datastore**: OpenSearch 2.11 (Docker Compose)
-- **Data Engineering**: Polars
-- **Machine Learning**: `sentence-transformers`, `litellm` (Gemini)
-- **Frontend**: Streamlit
-- **Testing**: Pytest
-
-## Setup & Running Locally
+## Setup & Running Locally (Docker Compose)
 
 1. **Environment Setup**
+   Copy the example environment into place:
    ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
+   cp .env.example .env
    ```
-2. **Environment Variables**
-   Modify `.env` to include your valid `GEMINI_API_KEY`.
-3. **Start Datastore**
-   Spin up local OpenSearch:
+   Add your valid `GEMINI_API_KEY` to `.env`.
+
+2. **Orchestrate via Make**
+   Deploy the entire application automatically:
    ```bash
-   docker compose up -d
-   ```
-4. **Data Ingestion**
-   Ingest the sample `data/companies.csv` data:
-   ```bash
-   python scripts/ingest_data.py --limit 1000
-   ```
-5. **Run Applications**
-   Run the backend API:
-   ```bash
-   uvicorn app.main:app --port 8000
-   ```
-   Run the frontend UI (in a new terminal):
-   ```bash
-   source venv/bin/activate
-   streamlit run frontend/app.py
+   make up
    ```
 
+3. **Ingest Data**
+   Stream 7 million rows of `.csv` data effectively via the batching container:
+   ```bash
+   make ingest
+   ```
+
+4. **Verify Systems**
+   - Streamlit Dashboard: `http://localhost:8501`
+   - Gateway OpenAPI Docs: `http://localhost:8000/docs`
+   - Inference OpenAPI Docs: `http://localhost:8001/docs`
+   - Jaeger Tracing UI: `http://localhost:16686`
+
 ## Documentation
-- `docs/architecture.md`: Detail of the three retrieval paradigms and components.
-- `docs/assumptions.md`: Core system constraints and design decisions.
-- `docs/DEVELOPMENT.md`: Git etiquette, layout, and testing plan.
+- `docs/architecture.md`: Detailed distributed workflows and Mermaid diagrams.
+- `docs/DEVELOPMENT.md`: Codebase mapping and development etiquette.

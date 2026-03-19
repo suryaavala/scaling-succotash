@@ -1,225 +1,109 @@
-# Architecture Details
+# V2 Microservices Architecture Details
 
-This document outlines the detailed system architecture, codebase breakdown, retrieval pipelines, and sequence flows of the Enterprise Company Search API system. The architecture is deeply coupled to the exact Python codebase implementations throughout the `app/` directory.
+## 1. High-Level Distributed Architecture
 
-## 1. High-Level System Architecture
-
-The system decouples the Streamlit frontend from the FastAPI routing logic, which delegates to specialized service modules depending on whether the query is deterministic or natural language.
+The system decouples the Streamlit frontend from the FastAPI routing logic, which delegates to specialized service modules depending on whether the query is deterministic or natural language. ML execution is strictly isolated into an unblockable inference thread.
 
 ```mermaid
 graph TD
-    %% Node Styles
     classDef frontend fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef apiLayer fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef svcLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef modelLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+    classDef worker fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef ml fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
     classDef dbLayer fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
 
-    %% Nodes
-    UI([Streamlit App<br/>frontend/app.py]):::frontend
-    FastAPI(FastAPI App<br/>app/main.py):::apiLayer
+    UI([Streamlit App<br/>Port 8501]):::frontend
+    Gateway(Gateway API<br/>FastAPI: Port 8000):::apiLayer
+    Inference(Inference Service<br/>PyTorch: Port 8001):::ml
+    Celery(Celery Worker<br/>agent_workflows):::worker
     
-    %% Routers
-    SearchRouter(Search Router<br/>app/api/routers/search.py):::apiLayer
-    TagsRouter(Tags Router<br/>app/api/routers/tags.py):::apiLayer
+    OS[(OpenSearch 2.x<br/>Port 9200)]:::dbLayer
+    Redis[(Redis Cache<br/>Port 6379)]:::dbLayer
+    Jaeger[[Jaeger Tracing<br/>Port 16686]]:::dbLayer
 
-    %% Services
-    SearchSvc(Search Service<br/>app/services/search_service.py):::svcLayer
-    IntelSvc(Intelligence Service<br/>app/services/intelligence_service.py):::svcLayer
-    AgentSvc(Agent Service<br/>app/services/agent_service.py):::svcLayer
-
-    %% Models
-    STransformer(SentenceTransformer<br/>'all-MiniLM-L6-v2'):::modelLayer
-    Gemini(Gemini Flash Lite<br/>via LiteLLM):::modelLayer
-    MockNews{{Mock News Tool<br/>agent_service.py}}:::modelLayer
-
-    %% DB
-    OS[(OpenSearch 2.11<br/>index: companies)]:::dbLayer
-
-    %% Connections
-    UI -->|HTTP POST| SearchRouter
-    UI -->|HTTP POST / GET| TagsRouter
+    %% Traces
+    Gateway -.->|OTel Traces| Jaeger
+    Inference -.->|OTel Traces| Jaeger
     
-    TagsRouter -->|Painless scripts & Aggregations| OS
-
-    %% Standard Path
-    SearchRouter -->|POST /api/v1/search| SearchSvc
-    SearchSvc -->|build_search_dsl| OS
+    %% Flows
+    UI -->|HTTP POST| Gateway
+    Gateway -->|Semantic Intent Cache| Redis
     
-    %% Intelligent Path
-    SearchRouter -->|POST /api/v1/search/intelligent| IntelSvc
-    IntelSvc -->|extract_intent(query)| Gemini
-    IntelSvc -->|encode(query)| STransformer
-    IntelSvc -->|hybrid_search(intent, vector)| OS
+    %% Two Stage Retrieval
+    Gateway -->|POST /embed| Inference
+    Gateway -->|Hybrid Search| OS
+    Gateway -->|POST /rerank| Inference
     
-    %% Agentic Path
-    SearchRouter -->|requires_agent=True| AgentSvc
-    AgentSvc -->|Loop top 5 domains| MockNews
-    AgentSvc -->|synthesize_agent_response| Gemini
+    %% Async Flow
+    Gateway -->|Drop Task| Redis
+    Redis -->|Pick up Job| Celery
+    Celery -->|Write Result| Redis
+    Celery --> OS
 ```
 
----
-
-## 2. Pydantic Domain Entities
-
-The API strictly governs request/response boundaries via `app/models/schemas.py`:
-
-```mermaid
-classDiagram
-    direction LR
-    
-    class Company {
-        +String id
-        +String name
-        +String domain
-        +String industry
-        +String locality
-        +String country
-        +String size_range
-        +Integer year_founded
-        +List~String~ tags
-    }
-
-    class SearchRequest {
-        +String name
-        +String industry
-        +String size_range
-        +String country
-        +Integer year_from
-        +Integer year_to
-        +Integer page
-        +Integer size
-    }
-
-    class SearchResponse {
-        +Integer total
-        +Integer page
-        +Integer size
-        +List~Company~ results
-    }
-    
-    class IntelligentSearchRequest {
-        +String query
-    }
-    
-    class IntelligentSearchResponse {
-        +String agentic_answer
-        +SearchResponse search_results
-    }
-
-    SearchResponse "1" *-- "many" Company : contains
-    IntelligentSearchResponse "1" *-- "1" SearchResponse : contains
-```
-
----
-
-## 3. Core Operational Sequences
-
-### 3.1 Deterministic Search Sequence (`POST /api/v1/search`)
-Fast, exact-match searches relying entirely on `build_search_dsl` mapped to OpenSearch boolean logic (`must` matches and `term`/`range` filters).
+## 2. Two-Stage Retrieval Flow (`/api/v2/search/intelligent`)
 
 ```mermaid
 sequenceDiagram
-    participant UI as frontend/app.py
-    participant API as app/api/routers/search.py
-    participant Svc as app/services/search_service.py
-    participant OS as OpenSearch (companies index)
-
-    UI->>API: POST /api/v1/search (SearchRequest)
-    API->>Svc: build_search_dsl(request)
-    note right of Svc: Maps 'name' to 'must -> match'<br/>Maps 'industry' to 'filter -> term'
-    Svc-->>API: Dict (OpenSearch DSL)
-    API->>OS: client.search(body=dsl)
-    OS-->>API: Hits JSON
-    API-->>UI: SearchResponse (Validated Pydantic)
-```
-
-### 3.2 Intelligent Search & Agentic Fallback Sequence (`POST /api/v1/search/intelligent`)
-The intelligent API orchestrates structured response parsing from Gemini, falls back to a custom local-vector hybrid query, and injects context into a secondary generative synthesis loop.
-
-```mermaid
-sequenceDiagram
-    participant UI as frontend/app.py
-    participant Router as routers/search.py
-    participant Intel as intelligence_service.py
-    participant Gemini as LiteLLM (Gemini)
-    participant ST as SentenceTransformer
+    participant UI as Streamlit UI
+    participant Gateway as Gateway API
+    participant Cache as Redis Cache
+    participant LLM as Gemini API
+    participant Inf as Inference Service
     participant OS as OpenSearch
-    participant Agent as agent_service.py
 
-    UI->>Router: POST /intelligent (query="AI startups in US funding")
+    UI->>Gateway: POST /api/v2/search/intelligent
+    Gateway->>Cache: GET intent:{hash}
     
-    %% Intent Extraction
-    Router->>Intel: extract_intent(query)
-    Intel->>Gemini: Prompt + response_format=IntentSchema
-    Gemini-->>Intel: JSON string
-    Intel-->>Router: parsed IntentSchema (requires_agent=True, country="us")
-    
-    %% Vector/Hybrid Fallback
-    Router->>Intel: hybrid_search(query, intent)
-    Intel->>ST: get_embed_model().encode(query)
-    ST-->>Intel: float[] (384-dimensional vector)
-    
-    note right of Intel: Builds bool query combining:<br/>1. match: name (boost=1.0)<br/>2. match: industry (boost=0.5)<br/>3. knn: embedding (k=20)<br/>4. filter: country="us"
-    
-    Intel->>OS: search(body=hybrid_dsl)
-    OS-->>Intel: Hits JSON
-    Intel-->>Router: SearchResponse (Base Candidates)
-    
-    %% Agentic Branch
-    alt if requires_agent == True (from IntentSchema)
-        Router->>Agent: synthesize_agent_response(query, Base Candidates)
-        
-        loop For Top 5 Candidates
-            Agent->>Agent: search_recent_news(candidate.domain)
-            note right of Agent: "Announced $10M Series A funding..."
-        end
-        
-        Agent->>Gemini: Prompt: [User Query] + [Candidate Context + News]
-        Gemini-->>Agent: Natural language summary string
-        Agent-->>Router: agentic_answer string
+    alt Cache Miss
+        Gateway->>LLM: extract_intent(query)
+        LLM-->>Gateway: IntentSchema JSON
+        Gateway->>Cache: SETEX intent:{hash}
     end
     
-    Router-->>UI: IntelligentSearchResponse (Results + Agent Answer)
+    %% Two Stage
+    Gateway->>Inf: POST /embed
+    Inf-->>Gateway: 384-d vector
+    Gateway->>OS: Hybrid Search (Match + KNN)
+    OS-->>Gateway: Top 100 Base Candidates
+    
+    Gateway->>Inf: POST /rerank (Query + 100 Candidates)
+    Inf-->>Gateway: Cross-Encoder Scores
+    
+    note right of Gateway: Gateway trims payload to Top 10 Results based on Inference Ranking
+    
+    Gateway-->>UI: Top 10 High Precision Results
 ```
 
----
-
-## 4. Tagging Architecture Sequence (`POST /api/v1/companies/{id}/tags`)
-The tagging system is strictly implemented on the backend datastore avoiding inefficient read-modify-write Python blocks.
+## 3. Asynchronous Agentic Flow (`POST /api/v2/search/agentic`)
 
 ```mermaid
 sequenceDiagram
-    participant UI as frontend/app.py
-    participant API as tags.py
-    participant OS as OpenSearch
+    participant UI as Streamlit UI
+    participant Gateway as Gateway API
+    participant Redis as Redis Broker
+    participant Celery as Celery Worker
+    participant LLM as Gemini API
+
+    UI->>Gateway: POST /agentic
+    Gateway->>Redis: Enqueue Task (synthesize_agent_response)
+    Gateway-->>UI: HTTP 202 Accepted (task_id)
     
-    UI->>API: POST /api/v1/companies/123/tags {"tag": "competitor"}
-    API->>API: Validate tag string
-    API->>OS: client.update(id="123", body={script: Painless})
-    note right of API: Painless Script logic:<br/>if (tags == null) init List;<br/>if (!tags.contains) add tag;
-    OS-->>API: 200 OK (Updated Document)
-    API-->>UI: 200 OK
-```
-
----
-
-## 5. Streaming Ingestion Pipeline
-
-To solve the 7 million row out-of-memory bottleneck defined in the specs, ingestion leverages Polars lazy chunking alongside pipelined vectorizations.
-
-```mermaid
-flowchart LR
-    CSV[(data/companies.csv)] -->|pl.read_csv_batched<br/>batch_size=5000| Loop[While chunk in batches]
-    
-    subgraph Python Chunking Loop [ingest_data.py]
-    Loop --> Clean[Lowercasing & Cast Ints]
-    Clean --> StringMerge[concat: name+industry+locality]
-    StringMerge -->|Encode| STrans[SentenceTransformers<br/>encode(batch)]
-    STrans & Clean --> BuildDoc[Build OpenSearch JSON Doc]
+    loop UI Polling
+        UI->>Gateway: GET /tasks/{task_id}
+        Gateway->>Redis: Check Status
+        Redis-->>Gateway: Status: PENDING
+        Gateway-->>UI: HTTP 200 (PENDING)
     end
     
-    BuildDoc -->|Bulk API actions| OS[(OpenSearch <br/>index: companies)]
+    Celery->>Redis: Consume Task
+    Celery->>Celery: Run simulated external News Logic
+    Celery->>LLM: Pass Context strings for summarization
+    LLM-->>Celery: Agentic Final Payload
+    Celery->>Redis: Update Status: SUCCESS (Result)
     
-    OS --> Loop
+    UI->>Gateway: GET /tasks/{task_id}
+    Gateway->>Redis: Check Status
+    Redis-->>Gateway: Status: SUCCESS (Result)
+    Gateway-->>UI: HTTP 200 (SUCCESS, Result payload)
 ```
