@@ -1,7 +1,8 @@
 import streamlit as st
 import requests
+import os
 
-API_URL = "http://localhost:8000/api/v1"
+API_URL = os.getenv("API_URL", "http://localhost:8000") + "/api/v2"
 
 st.set_page_config(page_title="Enterprise B2B Search", layout="wide")
 st.title("Company Search Dashboard")
