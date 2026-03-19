@@ -31,7 +31,7 @@ project_root/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── app/
-│       ├── routers/         # search.py (Two-Stage logic), async_tasks.py (Celery delegation)
+│       ├── routers/         # search.py (Two-Stage logic), async_tasks.py (Celery delegation), tags.py (Dataset annotation)
 │       └── core/            # redis_cache.py (LLM timeout prevention), telemetry.py
 ├── inference_service/      
 │   ├── Dockerfile           # Preheats 1GB .bin matrices actively during build phases
