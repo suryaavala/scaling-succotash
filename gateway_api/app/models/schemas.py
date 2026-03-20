@@ -1,16 +1,5 @@
-from typing import List, Optional
 from pydantic import BaseModel
-
-class Company(BaseModel):
-    id: str
-    name: str
-    domain: Optional[str] = None
-    industry: Optional[str] = None
-    locality: Optional[str] = None
-    country: Optional[str] = None
-    size_range: Optional[str] = None
-    year_founded: Optional[int] = None
-    tags: List[str] = []
+from typing import Optional, List
 
 class SearchRequest(BaseModel):
     name: Optional[str] = None
@@ -19,12 +8,9 @@ class SearchRequest(BaseModel):
     country: Optional[str] = None
     year_from: Optional[int] = None
     year_to: Optional[int] = None
-    tags: List[str] = []
+    tags: Optional[List[str]] = None
     page: int = 1
-    size: int = 20
+    size: int = 10
 
 class SearchResponse(BaseModel):
-    total: int
-    page: int
-    size: int
-    results: List[Company]
+    results: list[dict]

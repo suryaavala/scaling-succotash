@@ -1,34 +1,44 @@
-# Enterprise B2B Company Search API
+# Enterprise B2B Company Search & Intelligence API (V2 Architecture)
 
 ## Overview
-This repository contains a production-grade, highly-available containerized system executing advanced Two-Stage Semantic Retrieval workflows utilizing isolated Machine Learning PyTorch tensor computations and deep autonomous asynchronous Celery workflow handlers reliably mapping natural language searches directly against 7M dynamically injected OpenSearch entity datasets cleanly globally natively accurately.
+This repository contains a production-grade, distributed microservices architecture for B2B company search. The V2 architecture strictly isolates CPU-heavy ML inference and asynchronous LLM agent workflows from the I/O-bound Web API gateway, ensuring high availability and horizontal scalability.
 
-## Architecture Stack Structure
-1. **API Gateway (`gateway_api`)**: Exposes FastAPI endpoints mapping two-stage caching heuristics.
-2. **Inference Node (`inference_service`)**: Highly decoupled PyTorch REST boundaries executing embedding encodings globally safely blocking standard HTTP IO bottlenecks natively safely.
-3. **Queue Consumers (`worker`)**: Redis pub-sub interfaces bridging Celery daemon tasks handling arbitrary asynchronous API completions mapping logic seamlessly into frontend polling endpoints precisely accurately.
-4. **Local Datastores**: Redis (Caching logic mappings safely), OpenSearch (KNN Vector computations utilizing memory isolation caps).
-5. **Observability**: OpenTelemetry generating span tracking loops bridging container bounds accurately mapped locally towards Jaeger instances directly natively automatically.
+## Architecture Stack
+- **Gateway API**: High-throughput FastAPI handling web routing and orchestration.
+- **Inference Service**: Isolated PyTorch container running `SentenceTransformers` and Cross-Encoder ranking.
+- **Asynchronous Workers**: Celery + Redis for deep agentic LLM synthesis jobs.
+- **Datastore**: OpenSearch 2.11 (capped intelligently to 1GB RAM natively).
+- **Intelligence**: LiteLLM (Gemini 3.1 Flash Lite) parsed through strict Pydantic JSON enforcement.
+- **Caching**: Semantic intent caching mapping raw user questions to bypass LLM timeouts.
+- **Observability**: OpenTelemetry distributed tracing exported to a native Jaeger instance.
 
-## Local Execution Flow
-1. Copy `.env` mapping variables safely locally bounds gracefully:
-```bash
-cp .env.example .env
-```
-*(Insert GEMINI API tokens mapping authentication safely)*
+## Setup & Running Locally (Docker Compose)
 
-2. Spin up the cluster utilizing native `Makefile` orchestrated loops bounding container topologies accurately directly:
-```bash
-make up
-```
+1. **Environment Setup**
+   Copy the example environment into place:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your valid `GEMINI_API_KEY` to `.env`.
 
-3. Ensure system states correctly spanning locally navigating accurately globally bounding endpoints natively explicitly:
-- **UI Interaction**: `http://localhost:8501`
-- **Tracing Matrix**: `http://localhost:16686`
-- **Gateway Swagger**: `http://localhost:8000/docs`
+2. **Orchestrate via Make**
+   Deploy the entire application automatically:
+   ```bash
+   make up
+   ```
 
-## Documentation & Runbooks
-The documentation folder maintains granular matrices mapping code footprints, network diagrams, and operational troubleshooting definitions.
-- `docs/architecture.md`: Detailed workflows and sequence diagrams.
-- `docs/DEVELOPMENT.md`: System layout spanning boundaries seamlessly safely.
-- `docs/RUNBOOK.md`: Troubleshooting logic bounding Redis states, Celery failures and JVM OOM recoveries.
+3. **Ingest Data**
+   Stream 7 million rows of `.csv` data effectively via the batching container:
+   ```bash
+   make ingest
+   ```
+
+4. **Verify Systems**
+   - Streamlit Dashboard: `http://localhost:8501`
+   - Gateway OpenAPI Docs: `http://localhost:8000/docs`
+   - Inference OpenAPI Docs: `http://localhost:8001/docs`
+   - Jaeger Tracing UI: `http://localhost:16686`
+
+## Documentation
+- `docs/architecture.md`: Detailed distributed workflows and Mermaid diagrams.
+- `docs/DEVELOPMENT.md`: Codebase mapping and development etiquette.

@@ -1,10 +1,12 @@
+import logging
 from typing import Dict, Any
 from app.models.schemas import SearchRequest
-from app.services.opensearch_client import INDEX_NAME
+from app.services.opensearch_client import get_opensearch_client, INDEX_NAME
+
+logger = logging.getLogger("search_service")
 
 def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
-    """Translates the standard SearchRequest into OpenSearch Boolean DSL."""
-    
+    """Translates the standard SearchRequest into OpenSearch Boolean DSL with Tag Support."""
     must_clauses = []
     filter_clauses = []
     
@@ -24,7 +26,6 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
         for tag in request.tags:
             filter_clauses.append({"term": {"tags": tag}})
             
-    # Handle year ranges
     year_range = {}
     if request.year_from:
         year_range["gte"] = request.year_from
@@ -34,14 +35,12 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     if year_range:
         filter_clauses.append({"range": {"year_founded": year_range}})
         
-    # Assemble the boolean query
     bool_query = {}
     if must_clauses:
         bool_query["must"] = must_clauses
     if filter_clauses:
         bool_query["filter"] = filter_clauses
         
-    # If no criteria provided, match all
     if not bool_query:
         query = {"match_all": {}}
     else:
@@ -53,3 +52,20 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
         "size": request.size
     }
     return dsl
+
+def execute_search(request: SearchRequest) -> list[dict]:
+    client = get_opensearch_client()
+    dsl = build_search_dsl(request)
+    
+    try:
+        resp = client.search(index=INDEX_NAME, body=dsl)
+        hits = resp["hits"]["hits"]
+        results = []
+        for hit in hits:
+            src = hit["_source"]
+            src["id"] = hit["_id"]
+            results.append(src)
+        return results
+    except Exception as e:
+        logger.error(f"Deterministic search failed: {e}")
+        return []

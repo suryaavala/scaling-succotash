@@ -31,8 +31,10 @@ project_root/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── app/
-│       ├── routers/         # search.py (Two-Stage logic), async_tasks.py (Celery delegation), tags.py (Dataset annotation)
-│       └── core/            # redis_cache.py (LLM timeout prevention), telemetry.py
+│       ├── routers/         # search.py (Deterministic+ML), tags.py, async_tasks.py
+│       ├── services/        # search_service.py, llm_router.py, opensearch_client.py
+│       ├── models/          # schemas.py
+│       └── core/            # redis_cache.py, telemetry.py
 ├── inference_service/      
 │   ├── Dockerfile           # Preheats 1GB .bin matrices actively during build phases
 │   ├── requirements.txt

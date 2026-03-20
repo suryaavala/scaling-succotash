@@ -120,7 +120,7 @@ In a production Tier-1 engine, we blend both constraints universally leveraging 
 ## Module 3: The Intelligence Layer & Agentic Routing
 
 ### LLMs as Routers (LiteLLM & Pydantic)
-How does a raw query ("Give me mid-sized tech companies in NY") map against rigid filters precisely? We leverage **Query Routers**. We invoke extremely fast models like `gpt-4o-mini` utilizing strict `Pydantic` `response_format` configurations preventing conversational hallucinations entirely:
+How does a raw query ("Give me mid-sized tech companies in NY") map against rigid filters precisely? We leverage **Query Routers**. We invoke extremely fast models like `gemini-3.1-flash-lite-preview` utilizing strict `Pydantic` `response_format` configurations preventing conversational hallucinations entirely:
 
 ```python
 import litellm
@@ -136,7 +136,7 @@ class IntentSchema(BaseModel):
 
 # Fast, cheap $0.0001 inference explicitly returning JSON
 response = litellm.completion(
-    model="gpt-4o-mini",
+    model="gemini/gemini-3.1-flash-lite-preview",
     messages=[{"role": "user", "content": "mid-sized tech in NY"}],
     response_format=IntentSchema
 )
