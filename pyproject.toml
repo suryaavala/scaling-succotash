@@ -1,0 +1,50 @@
+[project]
+name = "scaling-succotash"
+version = "3.0.0"
+description = "Enterprise B2B Company Search & Intelligence API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn>=0.23.2",
+    "opensearch-py>=2.3.1",
+    "sentence-transformers>=2.2.2",
+    "pydantic>=2.4.2",
+    "litellm>=1.0.0",
+    "polars>=0.19.12",
+    "streamlit>=1.28.1",
+    "celery>=5.3.4",
+    "redis>=5.0.1",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.25.1",
+    "watchdog>=6.0.0",
+    "numpy<2.0.0",
+    "transformers<4.39"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "types-redis",
+    "types-requests"
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "D"]
+# Ignoring specific pydocstyle rules that are unnecessary (e.g., D100 module docstring if strictness is too high for empty __init__.py files)
+ignore = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
