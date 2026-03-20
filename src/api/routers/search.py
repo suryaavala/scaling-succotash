@@ -2,21 +2,23 @@
 
 import logging
 
-from app.models.schemas import (
+from fastapi import APIRouter, Depends
+
+from src.api.models.schemas import (
     IntelligentSearchRequest,
     IntelligentSearchResponse,
     SearchRequest,
     SearchResponse,
 )
-from app.services.llm_router import LLMClient, get_llm_client
-from app.services.opensearch_client import OSClient, get_os_client
-from app.services.search_service import execute_search
-from app.services.search_strategies import (
+from src.api.services.llm_router import LLMClient, get_llm_client
+from src.api.services.opensearch_client import OSClient, get_os_client
+from src.api.services.search_service import execute_search
+from src.api.services.search_strategies import (
     AgenticSearchStrategy,
+    IntelligentSearchStrategy,
     SearchContext,
     SemanticSearchStrategy,
 )
-from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/api/v2/search", tags=["Search API V2"])
 logger = logging.getLogger("search")
@@ -41,6 +43,7 @@ async def intelligent_search(
     intent = llm_client.extract_intent(request.query)
     candidates = os_client.two_stage_retrieval(request.query, intent)
 
+    strategy: IntelligentSearchStrategy
     if intent.get("requires_agent"):
         strategy = AgenticSearchStrategy()
     else:

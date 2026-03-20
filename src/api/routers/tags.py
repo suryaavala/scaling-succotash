@@ -3,10 +3,11 @@
 import logging
 from typing import Dict
 
-from app.models.schemas import TagRequest
-from app.services.opensearch_client import INDEX_NAME, OSClient, get_os_client
 from fastapi import APIRouter, Depends, HTTPException
 from opensearchpy.exceptions import NotFoundError
+
+from src.api.models.schemas import TagRequest
+from src.api.services.opensearch_client import INDEX_NAME, OSClient, get_os_client
 
 router = APIRouter(prefix="/api/v2", tags=["Tags"])
 logger = logging.getLogger("api")

@@ -3,8 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
-from app.models.schemas import AgenticSearchRequest, IntelligentSearchResponse
-from app.routers.async_tasks import dispatch_agentic_search
+from src.api.models.schemas import AgenticSearchRequest, IntelligentSearchResponse
+from src.api.routers.async_tasks import dispatch_agentic_search
 
 
 class IntelligentSearchStrategy(ABC):

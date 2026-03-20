@@ -5,11 +5,12 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List
 
-from app.models.embedding_model import get_embedding_model
-from app.models.reranker_model import get_reranker_model
-from app.telemetry import setup_telemetry
 from fastapi import FastAPI
 from pydantic import BaseModel
+
+from src.inference.models.embedding_model import get_embedding_model
+from src.inference.models.reranker_model import get_reranker_model
+from src.inference.telemetry import setup_telemetry
 
 logger = logging.getLogger("inference")
 

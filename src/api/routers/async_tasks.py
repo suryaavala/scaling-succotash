@@ -4,11 +4,11 @@ import logging
 import os
 from typing import Any, Dict
 
-from app.models.schemas import AgenticSearchRequest, TaskStatusResponse
 from celery.result import AsyncResult
 from fastapi import APIRouter
 
-from worker.tasks.agent_workflows import celery_app
+from src.api.models.schemas import AgenticSearchRequest, TaskStatusResponse
+from src.worker.agent_workflows import celery_app
 
 router = APIRouter(prefix="/api/v2", tags=["Async Tasks"])
 logger = logging.getLogger("async_tasks")

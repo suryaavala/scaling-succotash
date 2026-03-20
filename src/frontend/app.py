@@ -57,6 +57,7 @@ with st.sidebar:
 
     if st.button("Apply Filters"):
         from typing import Any
+
         payload: dict[str, Any] = {}
         if name_filter:
             payload["name"] = name_filter

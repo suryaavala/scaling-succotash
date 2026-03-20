@@ -9,4 +9,4 @@ RUN uv sync --frozen --no-install-project --no-dev
 
 COPY . /app
 
-CMD ["uv", "run", "celery", "-A", "worker.tasks.agent_workflows", "worker", "--loglevel=info"]
+CMD ["uv", "run", "celery", "-A", "src.worker.agent_workflows", "worker", "--loglevel=info"]

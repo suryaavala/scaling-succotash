@@ -20,7 +20,11 @@ dependencies = [
     "watchdog>=6.0.0",
     "numpy<2.0.0",
     "transformers<4.39",
-    "torch<=2.2.2"
+    "torch<=2.2.2",
+    "opentelemetry-api>=1.40.0",
+    "opentelemetry-sdk>=1.40.0",
+    "opentelemetry-exporter-otlp>=1.40.0",
+    "opentelemetry-instrumentation-fastapi>=0.61b0",
 ]
 
 [dependency-groups]

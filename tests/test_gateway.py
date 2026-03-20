@@ -1,34 +1,27 @@
 """Module docstring mapped natively."""
 
-from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from gateway_api.app.main import app
+from src.api.main import app
+from src.api.services.opensearch_client import get_os_client
 
 client = TestClient(app)
 
 
-@patch("app.services.opensearch_client.get_embedding")
-@patch("app.services.opensearch_client.get_rerank_scores")
-@patch("app.services.opensearch_client.get_opensearch_client")
-def test_intelligent_search(mock_os: Any, mock_rerank: Any, mock_embed: Any) -> None:
+def test_intelligent_search() -> None:
     """Native test execution mapping bound."""
-    mock_os.return_value.search.return_value = {
-        "hits": {
-            "hits": [
-                {"_id": "1", "_source": {"name": "Test1"}},
-                {"_id": "2", "_source": {"name": "Test2"}},
-            ]
-        }
-    }
+    mock_os_client = MagicMock()
+    mock_os_client.two_stage_retrieval.return_value = [
+        {"id": "1", "name": "Test1"},
+        {"id": "2", "name": "Test2"},
+    ]
 
-    mock_embed.return_value = [0.1] * 384
-    mock_rerank.return_value = [0.9, 0.1]
+    app.dependency_overrides[get_os_client] = lambda: mock_os_client
 
     with patch(
-        "app.services.llm_router.extract_intent",
+        "src.api.services.llm_router.LLMClient.extract_intent",
         return_value={"requires_agent": False},
     ):
         resp = client.post("/api/v2/search/intelligent", json={"query": "test query"})
@@ -38,3 +31,5 @@ def test_intelligent_search(mock_os: Any, mock_rerank: Any, mock_embed: Any) -> 
     assert "results" in data
     assert len(data["results"]) == 2
     assert data["results"][0]["name"] == "Test1"
+
+    app.dependency_overrides.clear()

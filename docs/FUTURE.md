@@ -1,7 +1,7 @@
 # FUTURE.md - Product Evolution & Scaling Roadmap
 
 ## Overview
-This document outlines the strategic roadmap for evolving the B2B Company Search & Intelligence API. While the current V3 architecture successfully balances low-latency deterministic search with intelligent agentic workflows via DI and Strategy patterns, operating at a global, enterprise scale requires significant advancements in both **Product Quality (Intelligence)** and **Infrastructure Scale (Resilience)**.
+This document outlines the strategic roadmap for evolving the B2B Company Search & Intelligence API. While the current V4 architecture successfully balances low-latency deterministic search with intelligent agentic workflows via DI and Strategy patterns, operating at a global, enterprise scale requires significant advancements in both **Product Quality (Intelligence)** and **Infrastructure Scale (Resilience)**.
 
 ---
 

@@ -149,14 +149,14 @@ intent_dict = json.loads(response.choices[0].message.content)
 If `is_agentic = True` (e.g. the user wants a synthesized competitive analysis), evaluating it natively inside FastAPI would result entirely in an immediate HTTP stall. Instead, the API gateway executes an HTTP 202 returning a `task_id`. A **Celery Worker Queue** offloads this computational footprint asynchronously:
 
 ```python
-# gateway_api/app/routers/async_tasks.py
+# src/api/routers/async_tasks.py
 @router.post("/agentic", status_code=202)
 def trigger_agent(query: str):
     # Fire and forget into Redis queue mapping
     task = process_agentic_workflow.delay(query)
     return {"message": "Accepted", "task_id": task.id}
 
-# worker/tasks/agent_workflows.py
+# src/worker/agent_workflows.py
 from celery import shared_task
 
 @shared_task(bind=True)
