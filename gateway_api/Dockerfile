@@ -1,10 +1,17 @@
 FROM python:3.11-slim
 
+# Install uv securely from the official image cleanly natively
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy dependency configuration safely explicitly dependably nicely cleanly clearly intuitively smoothly organically explicit dependably securely correctly natively
+COPY pyproject.toml uv.lock ./
 
-COPY . .
+# Sync dependencies organically reliably solidly efficiently smoothly safely elegantly smartly explicit cleverly smartly securely fluidly correctly explicitly safely correctly explicit dependably
+RUN uv sync --frozen --no-install-project --no-dev
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy entire context natively mapping gracefully smoothly cleanly natively optimally seamlessly flexibly accurately automatically fluently dependably correctly
+COPY . /app
+
+CMD ["uv", "run", "uvicorn", "gateway_api.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

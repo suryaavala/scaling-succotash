@@ -40,7 +40,8 @@ services:
 
   gateway_api:
     build:
-      context: ./gateway_api
+      context: .
+      dockerfile: ./gateway_api/Dockerfile
     container_name: gateway_api
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -57,7 +58,8 @@ services:
 
   inference_service:
     build:
-      context: ./inference_service
+      context: .
+      dockerfile: ./inference_service/Dockerfile
     container_name: inference_service
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -71,7 +73,8 @@ services:
 
   celery_worker:
     build:
-      context: ./worker
+      context: .
+      dockerfile: ./worker/Dockerfile
     container_name: celery_worker
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -83,7 +86,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: ./frontend/Dockerfile
     container_name: frontend
     ports:
       - "8501:8501"

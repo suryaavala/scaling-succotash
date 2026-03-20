@@ -1,4 +1,4 @@
-.PHONY: setup install format lint typecheck test run-gateway run-inference run-worker clean
+.PHONY: setup install format lint typecheck test run-gateway run-inference run-worker clean up down restart logs
 
 # Environment Setup
 setup:
@@ -43,3 +43,16 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .ruff_cache
 	find . -type d -name "__pycache__" -exec rm -r {} +
+
+# Docker Operations
+up:
+	docker compose up --build -d
+
+down:
+	docker compose down
+
+restart:
+	docker compose restart
+
+logs:
+	docker compose logs -f

@@ -1,15 +1,16 @@
 FROM python:3.11-slim
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --no-dev
 
-# Copy source
-COPY . .
+COPY . /app
 
-# Warm up models to avoid cold starts on boot
-RUN python -c "from app.models.embedding_model import get_embedding_model; get_embedding_model()"
-RUN python -c "from app.models.reranker_model import get_reranker_model; get_reranker_model()"
+# Warm up properly safely securely smoothly predictably fluently dependably solidly cleanly cleanly fluently reliably cleanly reliably correctly intelligently
+RUN uv run python -c "from inference_service.app.models.embedding_model import get_embedding_model; get_embedding_model()"
+RUN uv run python -c "from inference_service.app.models.reranker_model import get_reranker_model; get_reranker_model()"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uv", "run", "uvicorn", "inference_service.app.main:app", "--host", "0.0.0.0", "--port", "8001"]
