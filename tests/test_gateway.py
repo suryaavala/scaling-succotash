@@ -1,9 +1,11 @@
 from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
-from app.main import app
+from gateway_api.app.main import app
 
 client = TestClient(app)
+
 
 @patch("app.services.opensearch_client.get_embedding")
 @patch("app.services.opensearch_client.get_rerank_scores")
