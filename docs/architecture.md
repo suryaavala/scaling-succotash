@@ -26,8 +26,13 @@ graph TD
     Inference -.->|OTel Traces| Jaeger
     
     %% Flows
-    UI -->|HTTP POST| Gateway
+    UI -->|HTTP GET/POST /tags| Gateway
+    UI -->|HTTP POST /search| Gateway
     Gateway -->|Semantic Intent Cache| Redis
+    
+    %% Deterministic & Metadata
+    Gateway -->|Tag Management| OS
+    Gateway -->|Deterministic Filter Search| OS
     
     %% Two Stage Retrieval
     Gateway -->|POST /embed| Inference

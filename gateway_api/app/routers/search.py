@@ -3,9 +3,16 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.llm_router import extract_intent
 from app.services.opensearch_client import two_stage_retrieval
+from app.models.schemas import SearchRequest, SearchResponse
+from app.services.search_service import execute_search
 
 router = APIRouter(prefix="/api/v2/search", tags=["Search API V2"])
 logger = logging.getLogger("search")
+
+@router.post("", response_model=SearchResponse)
+async def deterministic_search(request: SearchRequest):
+    results = execute_search(request)
+    return SearchResponse(results=results)
 
 class IntelligentSearchRequest(BaseModel):
     query: str

@@ -3,9 +3,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 from opensearchpy.exceptions import NotFoundError
-from app.core.opensearch_client import get_opensearch_client, INDEX_NAME
+from app.services.opensearch_client import get_opensearch_client, INDEX_NAME
 
-router = APIRouter(prefix="/api/v1", tags=["Tags"])
+router = APIRouter(prefix="/api/v2", tags=["Tags"])
 logger = logging.getLogger("api")
 
 class TagRequest(BaseModel):
@@ -34,7 +34,7 @@ async def add_tag(company_id: str, request: TagRequest):
     }
     
     try:
-        response = client.update(index=INDEX_NAME, id=company_id, body=script, refresh=True)
+        client.update(index=INDEX_NAME, id=company_id, body=script, refresh=True)
         return {"status": "success", "tag": tag, "company_id": company_id}
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Company not found")
