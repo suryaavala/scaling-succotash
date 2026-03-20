@@ -5,14 +5,14 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from gateway_api.app.main import app
+from src.api.main import app
 
 client = TestClient(app)
 
 
-@patch("app.services.opensearch_client.get_embedding")
-@patch("app.services.opensearch_client.get_rerank_scores")
-@patch("app.services.opensearch_client.get_opensearch_client")
+@patch("src.api.services.opensearch_client.get_embedding")
+@patch("src.api.services.opensearch_client.get_rerank_scores")
+@patch("src.api.services.opensearch_client.get_os_client")
 def test_intelligent_search(mock_os: Any, mock_rerank: Any, mock_embed: Any) -> None:
     """Native test execution mapping bound."""
     mock_os.return_value.search.return_value = {
@@ -28,7 +28,7 @@ def test_intelligent_search(mock_os: Any, mock_rerank: Any, mock_embed: Any) -> 
     mock_rerank.return_value = [0.9, 0.1]
 
     with patch(
-        "app.services.llm_router.extract_intent",
+        "src.api.services.llm_router.LLMClient.extract_intent",
         return_value={"requires_agent": False},
     ):
         resp = client.post("/api/v2/search/intelligent", json={"query": "test query"})

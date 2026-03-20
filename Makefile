@@ -1,3 +1,4 @@
+export VIRTUAL_ENV=
 .PHONY: setup install format lint typecheck test run-gateway run-inference run-worker clean up down restart logs
 
 # Environment Setup
@@ -26,16 +27,16 @@ test:
 
 # Service Execution
 run-gateway:
-	uv run uvicorn gateway_api.app.main:app --host 0.0.0.0 --port 8000 --reload
+	uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 run-inference:
-	uv run uvicorn inference_service.app.main:app --host 0.0.0.0 --port 8001 --reload
+	uv run uvicorn src.inference.main:app --host 0.0.0.0 --port 8001 --reload
 
 run-worker:
-	uv run celery -A worker.tasks.agent_workflows worker --loglevel=info
+	uv run celery -A src.worker.agent_workflows worker --loglevel=info
 
 run-frontend:
-	uv run streamlit run frontend/app.py
+	uv run streamlit run src/frontend/app.py
 
 clean:
 	rm -rf .venv

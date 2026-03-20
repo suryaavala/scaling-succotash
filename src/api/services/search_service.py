@@ -3,16 +3,16 @@
 import logging
 from typing import Any, Dict, List
 
-from app.models.schemas import SearchRequest
-from app.services.opensearch_client import INDEX_NAME, OSClient
+from src.api.models.schemas import SearchRequest
+from src.api.services.opensearch_client import INDEX_NAME, OSClient
 
 logger = logging.getLogger("search_service")
 
 
 def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     """Translates SearchRequest into OpenSearch DSL with Tag Support."""
-    must_clauses = []
-    filter_clauses = []
+    must_clauses: List[Dict[str, Any]] = []
+    filter_clauses: List[Dict[str, Any]] = []
 
     if request.name:
         must_clauses.append({"match": {"name": request.name}})
@@ -30,7 +30,7 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
         for tag in request.tags:
             filter_clauses.append({"term": {"tags": tag}})
 
-    year_range = {}
+    year_range: Dict[str, int] = {}
     if request.year_from:
         year_range["gte"] = request.year_from
     if request.year_to:

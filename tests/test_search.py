@@ -1,7 +1,7 @@
 """Module docstring mapped natively."""
 
-from app.models.schemas import SearchRequest
-from app.services.search_service import build_search_dsl
+from src.api.models.schemas import SearchRequest
+from src.api.services.search_service import build_search_dsl
 
 
 def test_build_search_dsl_empty() -> None:

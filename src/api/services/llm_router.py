@@ -4,9 +4,10 @@ import json
 import logging
 from typing import Any, Dict, Optional, cast
 
-from app.core.redis_cache import get_cached_intent, set_cached_intent
 from litellm import completion
 from pydantic import BaseModel
+
+from src.api.core.redis_cache import get_cached_intent, set_cached_intent
 
 logger = logging.getLogger("llm_router")
 
@@ -33,7 +34,7 @@ class LLMClient:
             logger.info(
                 "Found intent in Redis cache. Bypassing LLM execution natively."
             )
-            return cast(Dict[str, Any], cached)
+            return cached
 
         try:
             response = completion(

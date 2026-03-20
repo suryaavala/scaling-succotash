@@ -2,7 +2,7 @@
 
 from fastapi.testclient import TestClient
 
-from inference_service.app.main import app
+from src.inference.main import app
 
 client = TestClient(app)
 
@@ -22,7 +22,7 @@ def test_rerank() -> None:
         "/rerank",
         json={
             "query": "What is machine learning?",
-            "candidates": [
+            "documents": [
                 "Apple is a fruit.",
                 "Machine learning is a subset of AI.",
                 "Cars have four wheels.",

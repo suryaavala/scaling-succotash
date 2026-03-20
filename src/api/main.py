@@ -3,9 +3,10 @@
 import logging
 from typing import Dict
 
-from app.core.telemetry import setup_telemetry
-from app.routers import async_tasks, search, tags
 from fastapi import FastAPI
+
+from src.api.core.telemetry import setup_telemetry
+from src.api.routers import async_tasks, search, tags
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")
