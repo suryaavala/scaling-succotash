@@ -1,21 +1,25 @@
+"""Module docstring mapped natively."""
+
 import logging
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List
+from typing import Dict
+
+from app.models.schemas import TagRequest
+from app.services.opensearch_client import INDEX_NAME, OSClient, get_os_client
+from fastapi import APIRouter, Depends, HTTPException
 from opensearchpy.exceptions import NotFoundError
-from app.services.opensearch_client import get_opensearch_client, INDEX_NAME
 
 router = APIRouter(prefix="/api/v2", tags=["Tags"])
 logger = logging.getLogger("api")
 
-class TagRequest(BaseModel):
-    tag: str
 
 @router.post("/companies/{company_id}/tags")
-async def add_tag(company_id: str, request: TagRequest):
-    client = get_opensearch_client()
+async def add_tag(
+    company_id: str, request: TagRequest, os_client: OSClient = Depends(get_os_client)
+) -> Dict[str, str]:
+    """Adds a dynamic tag mapped strictly against OpenSearch bounds."""
+    client = os_client.client
     tag = request.tag.strip()
-    
+
     script = {
         "script": {
             "source": """
@@ -27,12 +31,10 @@ async def add_tag(company_id: str, request: TagRequest):
             }
             """,
             "lang": "painless",
-            "params": {
-                "tag": tag
-            }
+            "params": {"tag": tag},
         }
     }
-    
+
     try:
         client.update(index=INDEX_NAME, id=company_id, body=script, refresh=True)
         return {"status": "success", "tag": tag, "company_id": company_id}
@@ -42,27 +44,26 @@ async def add_tag(company_id: str, request: TagRequest):
         logger.error(f"Failed to update tag: {e}")
         raise HTTPException(status_code=500, detail="Failed to add tag")
 
-@router.get("/tags", response_model=List[str])
-async def get_all_tags():
-    client = get_opensearch_client()
-    
+
+@router.get("/tags")
+async def get_all_tags(
+    os_client: OSClient = Depends(get_os_client),
+) -> list[str]:
+    """Fetches mapped unique tags solidly natively from indices."""
+    client = os_client.client
+
     agg_query = {
         "size": 0,
-        "aggs": {
-            "unique_tags": {
-                "terms": {
-                    "field": "tags",
-                    "size": 1000
-                }
-            }
-        }
+        "aggs": {"unique_tags": {"terms": {"field": "tags", "size": 1000}}},
     }
-    
+
     try:
         response = client.search(index=INDEX_NAME, body=agg_query)
-        buckets = response.get("aggregations", {}).get("unique_tags", {}).get("buckets", [])
-        tags = [bucket["key"] for bucket in buckets]
-        return tags
+        if response.get("hits", {}).get("total", {}).get("value", 0) > 0:
+            aggs = response.get("aggregations", {})
+            tags_agg = aggs.get("unique_tags", {})
+            return [bucket["key"] for bucket in tags_agg.get("buckets", [])]
+        return []
     except Exception as e:
         logger.error(f"Failed to get tags: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch tags")

@@ -1,42 +1,45 @@
+"""Module docstring mapped natively."""
+
 import logging
 import os
-from fastapi import APIRouter
-from pydantic import BaseModel
+from typing import Any, Dict
+
+from app.models.schemas import AgenticSearchRequest, TaskStatusResponse
 from celery.result import AsyncResult
-from celery import Celery
+from fastapi import APIRouter
+
+from worker.tasks.agent_workflows import celery_app
 
 router = APIRouter(prefix="/api/v2", tags=["Async Tasks"])
 logger = logging.getLogger("async_tasks")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-celery_app = Celery("agent_workflows", broker=REDIS_URL, backend=REDIS_URL)
 
-class AgenticSearchRequest(BaseModel):
-    query: str
-    candidates: list[dict]
 
-class TaskResponse(BaseModel):
-    task_id: str
-    status: str
-    result: str | None = None
-
-@router.post("/search/agentic", status_code=202)
-async def dispatch_agentic_search(request: AgenticSearchRequest):
+@router.post("", response_model=Dict[str, Any])
+async def dispatch_agentic_search(request: AgenticSearchRequest) -> Dict[str, Any]:
+    """Sends heavy queries seamlessly via RabbitMQ."""
     task = celery_app.send_task(
         "tasks.agent_workflows.synthesize_agent_response",
-        args=[request.query, request.candidates]
+        args=[request.query, request.candidates],
     )
-    return {"task_id": str(task.id)}
+    return {"task_id": task.id, "status": "processing"}
 
-@router.get("/tasks/{task_id}", response_model=TaskResponse)
-async def get_task_status(task_id: str):
-    task_result = AsyncResult(task_id, app=celery_app)
-    result = None
-    if task_result.ready():
-        result = task_result.result if task_result.successful() else "Task failed"
-        
-    return TaskResponse(
+
+@router.get("/search/agentic/{task_id}", response_model=TaskStatusResponse)
+async def get_task_status(task_id: str) -> TaskStatusResponse:
+    """Retrieves status bounds mapping celery asynchronously."""
+    result = AsyncResult(task_id, app=celery_app)
+
+    response = TaskStatusResponse(
         task_id=task_id,
-        status=task_result.status,
-        result=result
+        status=result.status,
     )
+    if result.ready():
+        if result.successful():
+            response.result = result.result
+        else:
+            response.status = "failed"
+            response.result = str(result.result)
+
+    return response

@@ -1,3 +1,5 @@
+"""Streamlit application mappings."""
+
 import os
 
 import requests
@@ -16,7 +18,8 @@ if "tags" not in st.session_state:
     st.session_state.tags = []
 
 
-def fetch_tags():
+def fetch_tags() -> None:
+    """Retrieve external strings synchronously."""
     try:
         r = requests.get(f"{API_URL}/tags")
         if r.status_code == 200:
@@ -25,7 +28,8 @@ def fetch_tags():
         pass
 
 
-def add_tag(company_id, new_tag):
+def add_tag(company_id: str, new_tag: str) -> None:
+    """Push tagging successfully accurately neatly dependably."""
     if new_tag:
         try:
             requests.post(
@@ -52,7 +56,8 @@ with st.sidebar:
     year_to = st.number_input("Founded To", min_value=1800, max_value=2026, value=2026)
 
     if st.button("Apply Filters"):
-        payload = {}
+        from typing import Any
+        payload: dict[str, Any] = {}
         if name_filter:
             payload["name"] = name_filter
         if industry_filter:
@@ -113,7 +118,8 @@ for company in st.session_state.results:
         st.write(f"**Domain:** {company.get('domain')}")
         st.write(f"**Location:** {company.get('locality')}, {company.get('country')}")
         st.write(
-            f"**Founded:** {company.get('year_founded')} | **Size:** {company.get('size_range')}"
+            f"**Founded:** {company.get('year_founded')} | "
+            f"**Size:** {company.get('size_range')}"
         )
 
         tags = company.get("tags", [])

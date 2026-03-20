@@ -1,7 +1,7 @@
-# Enterprise B2B Company Search & Intelligence API (V2 Architecture)
+# Enterprise B2B Company Search & Intelligence API (V3 Architecture)
 
 ## Overview
-This repository contains a production-grade, distributed microservices architecture for B2B company search. The V2 architecture strictly isolates CPU-heavy ML inference and asynchronous LLM agent workflows from the I/O-bound Web API gateway, ensuring high availability and horizontal scalability.
+This repository contains a production-grade, distributed microservices architecture for B2B company search. The V3 architecture strictly isolates CPU-heavy ML inference and asynchronous LLM agent workflows from the I/O-bound Web API gateway, ensuring high availability and horizontal scalability. It natively enforces SOLID principles via Dependency Injection and Strategy patterns, while leveraging `uv` for next-generation Python tooling.
 
 ## Architecture Stack
 - **Gateway API**: High-throughput FastAPI handling web routing and orchestration.
@@ -11,6 +11,7 @@ This repository contains a production-grade, distributed microservices architect
 - **Intelligence**: LiteLLM (Gemini 3.1 Flash Lite) parsed through strict Pydantic JSON enforcement.
 - **Caching**: Semantic intent caching mapping raw user questions to bypass LLM timeouts.
 - **Observability**: OpenTelemetry distributed tracing exported to a native Jaeger instance.
+- **Tooling (V3)**: `uv` for dependency management, `ruff` for linting, and `mypy` for strict typing.
 
 ## Setup & Running Locally (Docker Compose)
 

@@ -1,43 +1,61 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List
+"""Module docstring mapped natively."""
+
+import logging
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from typing import Any, Dict, List
+
 from app.models.embedding_model import get_embedding_model
 from app.models.reranker_model import get_reranker_model
-
-app = FastAPI(title="Inference Service")
-
 from app.telemetry import setup_telemetry
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+logger = logging.getLogger("inference")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Handles startup preheating of inference matrices natively."""
+    logger.info("Preheating SentenceTransformer embedding model...")
+    get_embedding_model()
+    logger.info("Preheating CrossEncoder reranker model...")
+    get_reranker_model()
+    yield
+    logger.info("Shutting down inference service.")
+
+
+app = FastAPI(title="Inference Service", lifespan=lifespan)
+
 setup_telemetry(app, "inference_service")
 
+
 class EmbedRequest(BaseModel):
+    """Schema for embedding tasks."""
+
     text: str
 
-class EmbedResponse(BaseModel):
-    vector: List[float]
 
 class RerankRequest(BaseModel):
+    """Schema for cross-encoder rerank tasks."""
+
     query: str
-    candidates: List[str]
+    documents: List[str]
 
-class RerankResponse(BaseModel):
-    scores: List[float]
 
-@app.on_event("startup")
-async def startup_event():
-    # Load models into memory permanently on container boot
-    get_embedding_model()
-    get_reranker_model()
-
-@app.post("/embed", response_model=EmbedResponse)
-async def embed(request: EmbedRequest):
+@app.post("/embed")
+async def embed(request: EmbedRequest) -> Dict[str, Any]:
+    """Generates a dense floating-point vector for input text natively."""
     model = get_embedding_model()
     vector = model.encode(request.text).tolist()
-    return EmbedResponse(vector=vector)
+    return {"vector": vector}
 
-@app.post("/rerank", response_model=RerankResponse)
-async def rerank(request: RerankRequest):
+
+@app.post("/rerank")
+async def rerank(request: RerankRequest) -> Dict[str, Any]:
+    """Scores cross-encoder query-document relevance reliably."""
     model = get_reranker_model()
     # Format required by CrossEncoder is [[query, candidate1], [query, candidate2]]
-    pairs = [[request.query, doc] for doc in request.candidates]
+    pairs = [[request.query, doc] for doc in request.documents]
     scores = model.predict(pairs).tolist()
-    return RerankResponse(scores=scores)
+    return {"scores": scores}

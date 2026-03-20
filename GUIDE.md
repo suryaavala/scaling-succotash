@@ -204,9 +204,28 @@ score = cross_encode(["startup", "tech-firm"]) # ~0.92 (Slow, but highly accurat
 ### Semantic Caching
 Why execute `$0.01` LiteLLM routing calls continuously targeting identically re-phrased queries? The system hashes input queries generating SHA-256 strings bounding **Redis SETEX** constraints (24 Hour Time-To-Live expiration tags). This prevents expensive repetitive generation costs reliably globally safely smoothly avoiding throttling limits globally.
 
-### Future Scaling Evolution (V3)
+### Future Scaling Evolution
 - **ColBERT (Late Interaction):** Instead of collapsing a 200-word document towards a single 384-d vector mathematically losing semantic depth entirely, ColBERT maintains token-level embeddings mapping exact matrix nuances locally scoring overlaps efficiently.
 - **GraphRAG:** Mapping precise company-to-company relationships mapping multi-hop bounds explicitly utilizing Neo4j graph nodes precisely dynamically (e.g., *Find investors who funded Acme Corp AND previously worked at FooBar Inc*).
+
+---
+
+## Module 5: Clean Code & V3 Modern Tooling
+
+### The Move to `uv`
+Standard `pip` and `venv` setups struggle dynamically under complex ML requirement graphs. We transitioned globally towards `uv`, a Rust-based, blazingly fast package resolver. It manages virtual environments implicitly (`uv sync`) and executes isolated binaries instantly (`uv run ruff check .`).
+
+### SOLID Principles: Strategy & Dependency Injection
+To ensure testability and decouple the FastAPI router from rigid OpenSearch clients, V3 injects dependencies natively:
+```python
+@router.post("/search")
+async def intelligent_search(
+    request: SearchRequest,
+    os_client: OSClient = Depends(get_os_client),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> IntelligentSearchResponse:
+```
+Furthermore, the execution paths delegate exactly directly into defined strategies (`SemanticSearchStrategy`, `AgenticSearchStrategy`), enforcing the Open-Closed Principle elegantly seamlessly mapping testing implementations cleanly.
 
 ---
 
