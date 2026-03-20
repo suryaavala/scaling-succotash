@@ -1,3 +1,4 @@
+"""Module docstring mapped natively."""
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -10,7 +11,8 @@ client = TestClient(app)
 @patch("app.services.opensearch_client.get_embedding")
 @patch("app.services.opensearch_client.get_rerank_scores")
 @patch("app.services.opensearch_client.get_opensearch_client")
-def test_intelligent_search(mock_os, mock_rerank, mock_embed):
+def test_intelligent_search(mock_os, mock_rerank, mock_embed) -> None:
+    """Native test execution mapping bound."""
     mock_os.return_value.search.return_value = {
         "hits": {
             "hits": [

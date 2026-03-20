@@ -1,15 +1,19 @@
+"""OpenTelemetry configuration module for Inference operations."""
+import logging
 import os
+
+from fastapi import FastAPI
 from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-import logging
 
 logger = logging.getLogger("telemetry")
 
-def setup_telemetry(app, service_name: str):
+def setup_telemetry(app: FastAPI, service_name: str) -> None:
+    """Configures Jaeger and OTEL propagation hooks."""
     jaeger_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
     
     resource = Resource.create(attributes={"service.name": service_name})

@@ -1,8 +1,10 @@
-import redis
+"""Module docstring mapped natively."""
 import hashlib
 import json
-import os
 import logging
+import os
+
+import redis
 
 logger = logging.getLogger("redis_cache")
 

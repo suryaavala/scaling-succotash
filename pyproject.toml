@@ -22,8 +22,8 @@ dependencies = [
     "transformers<4.39"
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "ruff",
     "mypy",
     "pytest",
@@ -48,3 +48,4 @@ convention = "google"
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
+explicit_package_bases = true

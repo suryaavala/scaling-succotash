@@ -1,10 +1,12 @@
+"""Module docstring mapped natively."""
 from unittest.mock import patch
 
 from app.services.llm_router import extract_intent
 
 
 @patch("app.services.llm_router.completion")
-def test_extract_intent_deterministic(mock_completion):
+def test_extract_intent_deterministic(mock_completion) -> None:
+    """Native test execution mapping bound."""
     class MockMessage:
         content = '{"requires_agent": false, "industry": "technology", "country": "us"}'
 

@@ -1,5 +1,7 @@
+"""Worker background tasks mapping agent workflows natively."""
 import os
 import logging
+from typing import Dict, Any, List
 from celery import Celery
 from litellm import completion
 
@@ -14,28 +16,40 @@ celery_app = Celery(
 )
 
 def search_recent_news(company_domain: str | None) -> str:
+    """Invokes simulated external intelligence retrieval."""
     if not company_domain:
         return "No recent news available."
-    return f"Recent news for {company_domain}: Announced $10M Series A funding last month."
+    return (
+        f"Recent news for {company_domain}: "
+        "Announced $10M Series A funding last month."
+    )
 
 @celery_app.task
 def synthesize_agent_response(query: str, candidates: list[dict]) -> str:
+    """Coordinates nested search synthesis natively evaluating models."""
     if not candidates:
         return "No relevant companies found to perform external search on."
         
     context = ""
-    for c in candidates[:5]:
-        domain = c.get("domain")
+    for c in candidates:
+        domain = c.get("website")
         news = search_recent_news(domain)
-        context += f"Company: {c.get('name')}\nDomain: {domain}\nNews: {news}\n\n"
+        context += f"Company: {c.get('name')} | Industry: {c.get('industry')} | News: {news}\n\n"
         
-    prompt = f"User query: {query}\n\nSearch Results & Context:\n{context}\n\nPlease provide a helpful natural language summary answering the user's query using only the provided context."
+    prompt = (
+        f"Context:\n{context}\n\n"
+        "Please provide a helpful natural language summary "
+        "answering the user's query using only the provided context."
+    )
     
     try:
         response = completion(
             model="gemini/gemini-3.1-flash-lite-preview",
             messages=[
-                {"role": "system", "content": "You are a helpful B2B company research assistant."},
+                {
+                    "role": "system",
+                    "content": "You are a helpful B2B company research assistant."
+                },
                 {"role": "user", "content": prompt}
             ]
         )

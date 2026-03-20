@@ -1,3 +1,4 @@
+"""Module docstring mapped natively."""
 from fastapi.testclient import TestClient
 
 from inference_service.app.main import app
@@ -5,7 +6,8 @@ from inference_service.app.main import app
 client = TestClient(app)
 
 
-def test_embed():
+def test_embed() -> None:
+    """Native test execution mapping bound."""
     response = client.post("/embed", json={"text": "artificial intelligence"})
     assert response.status_code == 200
     data = response.json()
@@ -13,7 +15,8 @@ def test_embed():
     assert len(data["vector"]) == 384
 
 
-def test_rerank():
+def test_rerank() -> None:
+    """Native test execution mapping bound."""
     response = client.post(
         "/rerank",
         json={

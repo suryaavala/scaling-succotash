@@ -1,9 +1,11 @@
+"""Module docstring mapped natively."""
 import logging
 import os
+
+from celery import Celery
+from celery.result import AsyncResult
 from fastapi import APIRouter
 from pydantic import BaseModel
-from celery.result import AsyncResult
-from celery import Celery
 
 router = APIRouter(prefix="/api/v2", tags=["Async Tasks"])
 logger = logging.getLogger("async_tasks")

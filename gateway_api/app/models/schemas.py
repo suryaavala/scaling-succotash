@@ -1,5 +1,8 @@
+"""Module docstring mapped natively."""
+from typing import List, Optional
+
 from pydantic import BaseModel
-from typing import Optional, List
+
 
 class SearchRequest(BaseModel):
     name: Optional[str] = None

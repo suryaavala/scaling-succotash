@@ -1,8 +1,11 @@
-import polars as pl
-import requests
-import json
+"""Module docstring mapped natively."""
 import logging
 import os
+from typing import Dict, Any, List
+
+"""Worker logic handling bulk data ingestions natively."""
+import polars as pl
+import requests
 from opensearchpy import OpenSearch, helpers
 
 logging.basicConfig(level=logging.INFO)
@@ -12,7 +15,8 @@ OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
 INFERENCE_URL = os.getenv("INFERENCE_URL", "http://localhost:8001")
 INDEX_NAME = "companies"
 
-def create_index(client):
+def create_index(client: OpenSearch) -> None:
+    """Configures the mapping indices safely dynamically."""
     mapping = {
         "mappings": {
             "properties": {
@@ -45,12 +49,14 @@ def create_index(client):
         client.indices.create(index=INDEX_NAME, body=mapping)
         logger.info(f"Created index {INDEX_NAME}")
 
-def get_embedding(text: str) -> list[float]:
+def get_embedding(text: str) -> List[float]:
+    """Generates an embedded array safely."""
     resp = requests.post(f"{INFERENCE_URL}/embed", json={"text": text})
     resp.raise_for_status()
     return resp.json()["vector"]
 
-def run():
+def run() -> None:
+    """Triggers batch indexing asynchronously globally."""
     client = OpenSearch([OPENSEARCH_URL], use_ssl=False, verify_certs=False)
     create_index(client)
     
@@ -85,7 +91,11 @@ def run():
             if not company_id:
                 continue
                 
-            text_to_embed = f"{row.get('name', '')} {row.get('industry', '')} {row.get('locality', '')}"
+            text_to_embed = (
+                f"{row.get('name', '')} "
+                f"{row.get('industry', '')} "
+                f"{row.get('locality', '')}"
+            )
             try:
                 vector = get_embedding(text_to_embed)
             except Exception as e:

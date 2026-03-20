@@ -1,7 +1,11 @@
+"""Module docstring mapped natively."""
 import logging
-from typing import Dict, Any
+
+"""Deterministic payload compilation routing logic natively mapping queries."""
+from typing import Any, Dict, List
+
+from app.core.opensearch_client import INDEX_NAME, get_opensearch_client
 from app.models.schemas import SearchRequest
-from app.services.opensearch_client import get_opensearch_client, INDEX_NAME
 
 logger = logging.getLogger("search_service")
 
@@ -35,12 +39,14 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     if year_range:
         filter_clauses.append({"range": {"year_founded": year_range}})
         
-    bool_query = {}
+    bool_query: Dict[str, Any] = {}
     if must_clauses:
         bool_query["must"] = must_clauses
     if filter_clauses:
         bool_query["filter"] = filter_clauses
         
+    # If no criteria provided, match all
+    query: Dict[str, Any]
     if not bool_query:
         query = {"match_all": {}}
     else:
@@ -53,7 +59,8 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     }
     return dsl
 
-def execute_search(request: SearchRequest) -> list[dict]:
+def execute_search(request: SearchRequest) -> List[Dict[str, Any]]:
+    """Runs compiled logic returning candidate arrays natively."""
     client = get_opensearch_client()
     dsl = build_search_dsl(request)
     

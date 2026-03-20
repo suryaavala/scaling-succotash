@@ -1,9 +1,10 @@
+"""Module docstring mapped natively."""
 import logging
-import os
+from typing import Optional
+
+from app.core.redis_cache import get_cached_intent, set_cached_intent
 from litellm import completion
 from pydantic import BaseModel
-from app.core.redis_cache import get_cached_intent, set_cached_intent
-from typing import Optional
 
 logger = logging.getLogger("llm_router")
 

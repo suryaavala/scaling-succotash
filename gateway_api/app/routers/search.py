@@ -1,19 +1,20 @@
+"""Search routing logic natively mapping deterministic layouts."""
 import logging
 
+from app.models.schemas import SearchRequest, SearchResponse
 from app.services.llm_router import extract_intent
 from app.services.opensearch_client import two_stage_retrieval
+from app.services.search_service import execute_search
 from fastapi import APIRouter
 from pydantic import BaseModel
-
-from app.models.schemas import SearchRequest, SearchResponse
-from app.services.search_service import execute_search
 
 router = APIRouter(prefix="/api/v2/search", tags=["Search API V2"])
 logger = logging.getLogger("search")
 
 
 @router.post("", response_model=SearchResponse)
-async def deterministic_search(request: SearchRequest):
+async def deterministic_search(request: SearchRequest) -> SearchResponse:
+    """Executes a legacy deterministic filter search natively."""
     results = execute_search(request)
     return SearchResponse(results=results)
 
@@ -28,7 +29,8 @@ class IntelligentSearchResponse(BaseModel):
 
 
 @router.post("/intelligent", response_model=IntelligentSearchResponse)
-async def intelligent_search(request: IntelligentSearchRequest):
+async def intelligent_search(request: IntelligentSearchRequest) -> IntelligentSearchResponse:
+    """Routes an intelligent string safely converting bounds toward deterministic APIs natively."""
     intent = extract_intent(request.query)
 
     candidates = two_stage_retrieval(request.query, intent)

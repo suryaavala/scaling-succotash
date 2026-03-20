@@ -1,19 +1,23 @@
+"""CLI script handling Polars CSV ingestion to OpenSearch."""
 import argparse
 import logging
-import polars as pl
-from sentence_transformers import SentenceTransformer
-from opensearchpy import helpers
-import sys
 import os
+import sys
+from typing import Any
+
+import polars as pl
+from opensearchpy import helpers
+from sentence_transformers import SentenceTransformer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.opensearch_client import get_opensearch_client, create_index, INDEX_NAME
+from app.core.opensearch_client import INDEX_NAME, create_index, get_opensearch_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ingest")
 
-def chunked_ingest(file_path: str, max_rows: int):
+def chunked_ingest(file_path: str, max_rows: int) -> None:
+    """Batches CSV reads pushing indexed aggregations into memory maps."""
     client = get_opensearch_client()
     create_index(client)
     
@@ -24,7 +28,10 @@ def chunked_ingest(file_path: str, max_rows: int):
     try:
         reader = pl.read_csv_batched(file_path, batch_size=5000, ignore_errors=True)
     except FileNotFoundError:
-        logger.error(f"File not found: {file_path}. Please place companies.csv in the data/ folder.")
+        logger.error(
+            f"File not found: {file_path}. "
+            "Please place companies.csv in the data/ folder."
+        )
         return
         
     total_processed = 0
@@ -47,7 +54,10 @@ def chunked_ingest(file_path: str, max_rows: int):
             
         if "year_founded" in df.columns:
             df = df.with_columns(
-                pl.col("year_founded").cast(pl.Float64, strict=False).fill_null(0.0).cast(pl.Int64)
+                pl.col("year_founded")
+                .cast(pl.Float64, strict=False)
+                .fill_null(0.0)
+                .cast(pl.Int64)
             )
         
         texts_to_embed = []
@@ -88,8 +98,12 @@ def chunked_ingest(file_path: str, max_rows: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ingest companies data.")
-    parser.add_argument("--file", type=str, default="data/companies.csv", help="Path to CSV")
-    parser.add_argument("--limit", type=int, default=100000, help="Max rows to ingest")
+    parser.add_argument(
+        "--file", type=str, default="data/companies.csv", help="Path to CSV"
+    )
+    parser.add_argument(
+        "--limit", type=int, default=100000, help="Max rows to ingest"
+    )
     args = parser.parse_args()
     
     chunked_ingest(args.file, args.limit)

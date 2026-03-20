@@ -1,8 +1,10 @@
-import os
-import requests
+"""Module docstring mapped natively."""
 import logging
-from opensearchpy import OpenSearch
+import os
 from typing import List
+
+import requests
+from opensearchpy import OpenSearch
 
 logger = logging.getLogger("opensearch")
 
