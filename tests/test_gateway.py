@@ -1,13 +1,17 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../gateway_api')))
+
 import pytest
 from fastapi.testclient import TestClient
-from gateway_api.app.main import app
+from app.main import app
 from unittest.mock import patch
 
 client = TestClient(app)
 
-@patch('gateway_api.app.services.opensearch_client.get_embedding')
-@patch('gateway_api.app.services.opensearch_client.get_rerank_scores')
-@patch('gateway_api.app.services.opensearch_client.get_opensearch_client')
+@patch('app.services.opensearch_client.get_embedding')
+@patch('app.services.opensearch_client.get_rerank_scores')
+@patch('app.services.opensearch_client.get_opensearch_client')
 def test_intelligent_search(mock_os, mock_rerank, mock_embed):
     mock_os.return_value.search.return_value = {
         "hits": {
@@ -21,7 +25,7 @@ def test_intelligent_search(mock_os, mock_rerank, mock_embed):
     mock_embed.return_value = [0.1] * 384
     mock_rerank.return_value = [0.9, 0.1]
     
-    with patch('gateway_api.app.services.llm_router.extract_intent', return_value={"requires_agent": False}):
+    with patch('app.services.llm_router.extract_intent', return_value={"requires_agent": False}):
         resp = client.post("/api/v2/search/intelligent", json={"query": "test query"})
         
     assert resp.status_code == 200

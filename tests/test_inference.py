@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import pytest
-from fastapi.testclient import TestClient
-from inference_service.app.main import app
-=======
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../inference_service')))
@@ -10,7 +5,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../i
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
->>>>>>> main
 
 client = TestClient(app)
 
