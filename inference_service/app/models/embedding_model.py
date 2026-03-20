@@ -1,7 +1,9 @@
 """Dense Embedding Bi-Encoder singleton manager."""
+
 from sentence_transformers import SentenceTransformer
 
 _model = None
+
 
 def get_embedding_model() -> SentenceTransformer:
     """Instantiates or securely fetches the cached Vector model natively."""

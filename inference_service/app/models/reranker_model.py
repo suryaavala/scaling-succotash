@@ -1,7 +1,9 @@
 """Reranking Cross-Encoder singleton manager."""
+
 from sentence_transformers import CrossEncoder
 
 _model = None
+
 
 def get_reranker_model() -> CrossEncoder:
     """Instantiates or safely fetches the globally cached MS-Marco model."""

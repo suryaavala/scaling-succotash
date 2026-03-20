@@ -1,4 +1,5 @@
 """Module docstring mapped natively."""
+
 from fastapi.testclient import TestClient
 
 from inference_service.app.main import app

@@ -1,17 +1,21 @@
-"""Inference FastAPI initialization module."""
+"""Module docstring mapped natively."""
+
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List
 
 from app.models.embedding_model import get_embedding_model
 from app.models.reranker_model import get_reranker_model
+from app.telemetry import setup_telemetry
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 logger = logging.getLogger("inference")
 
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Handles startup preheating of inference matrices natively."""
     logger.info("Preheating SentenceTransformer embedding model...")
     get_embedding_model()
@@ -23,17 +27,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Inference Service", lifespan=lifespan)
 
-from app.telemetry import setup_telemetry
-
 setup_telemetry(app, "inference_service")
+
 
 class EmbedRequest(BaseModel):
     """Schema for embedding tasks."""
+
     text: str
 
 
 class RerankRequest(BaseModel):
     """Schema for cross-encoder rerank tasks."""
+
     query: str
     documents: List[str]
 
@@ -44,6 +49,7 @@ async def embed(request: EmbedRequest) -> Dict[str, Any]:
     model = get_embedding_model()
     vector = model.encode(request.text).tolist()
     return {"vector": vector}
+
 
 @app.post("/rerank")
 async def rerank(request: RerankRequest) -> Dict[str, Any]:

@@ -1,7 +1,9 @@
 """Worker background tasks mapping agent workflows natively."""
-import os
+
 import logging
-from typing import Dict, Any, List
+import os
+from typing import Any, Dict
+
 from celery import Celery
 from litellm import completion
 
@@ -9,51 +11,58 @@ logger = logging.getLogger("worker")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-celery_app = Celery(
-    "agent_workflows",
-    broker=REDIS_URL,
-    backend=REDIS_URL
-)
+celery_app = Celery("agent_workflows", broker=REDIS_URL, backend=REDIS_URL)
+
 
 def search_recent_news(company_domain: str | None) -> str:
     """Invokes simulated external intelligence retrieval."""
     if not company_domain:
         return "No recent news available."
     return (
-        f"Recent news for {company_domain}: "
-        "Announced $10M Series A funding last month."
+        f"Recent news for {company_domain}: Announced $10M Series A funding last month."
     )
 
-@celery_app.task
-def synthesize_agent_response(query: str, candidates: list[dict]) -> str:
+
+# Celery's task decorator lacks proper type hints
+@celery_app.task(bind=True, max_retries=3)  # type: ignore[untyped-decorator]
+def synthesize_agent_response(self: Any, task_data: Dict[str, Any]) -> Dict[str, Any]:
     """Coordinates nested search synthesis natively evaluating models."""
+    # Extract query and candidates from task_data
+    query = task_data.get("query", "")
+    candidates = task_data.get("candidates", [])
+
     if not candidates:
-        return "No relevant companies found to perform external search on."
-        
+        return {"summary": "No relevant companies found to perform external search on."}
+
     context = ""
     for c in candidates:
         domain = c.get("website")
         news = search_recent_news(domain)
-        context += f"Company: {c.get('name')} | Industry: {c.get('industry')} | News: {news}\n\n"
-        
+        context += (
+            f"Company: {c.get('name')} | Industry: {c.get('industry')} | "
+            f"News: {news}\n\n"
+        )
+
     prompt = (
         f"Context:\n{context}\n\n"
+        f"Query: {query}\n\n"
         "Please provide a helpful natural language summary "
         "answering the user's query using only the provided context."
     )
-    
+
     try:
         response = completion(
             model="gemini/gemini-3.1-flash-lite-preview",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful B2B company research assistant."
+                    "content": "You are a helpful B2B company research assistant.",
                 },
-                {"role": "user", "content": prompt}
-            ]
+                {"role": "user", "content": prompt},
+            ],
         )
-        return response.choices[0].message.content or "No summary generated."
+        summary = response.choices[0].message.content or "No summary generated."
+        return {"summary": summary}
     except Exception as e:
         logger.error(f"Agent synthesis failed: {e}")
-        return "Error synthesizing agent response."
+        return {"summary": "Error synthesizing agent response."}
