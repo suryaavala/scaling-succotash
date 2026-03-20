@@ -1,22 +1,21 @@
 """Module docstring mapped natively."""
 import logging
-from typing import Dict, List
+from typing import Dict
 
-from app.core.opensearch_client import INDEX_NAME, get_opensearch_client
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from opensearchpy.exceptions import NotFoundError
-from pydantic import BaseModel
+from app.models.schemas import TagRequest
+from app.services.opensearch_client import INDEX_NAME, OSClient, get_os_client
 
 router = APIRouter(prefix="/api/v2", tags=["Tags"])
 logger = logging.getLogger("api")
 
-class TagRequest(BaseModel):
-    tag: str
-
 @router.post("/companies/{company_id}/tags")
-async def add_tag(company_id: str, request: TagRequest) -> Dict[str, str]:
+async def add_tag(
+    company_id: str, request: TagRequest, os_client: OSClient = Depends(get_os_client)
+) -> Dict[str, str]:
     """Adds a dynamic tag mapped strictly against OpenSearch bounds."""
-    client = get_opensearch_client()
+    client = os_client.client
     tag = request.tag.strip()
     
     script = {
@@ -45,10 +44,10 @@ async def add_tag(company_id: str, request: TagRequest) -> Dict[str, str]:
         logger.error(f"Failed to update tag: {e}")
         raise HTTPException(status_code=500, detail="Failed to add tag")
 
-@router.get("/tags", response_model=List[str])
-async def get_all_tags() -> List[str]:
-    """Extracts all unique tag aggregations."""
-    client = get_opensearch_client()
+@router.get("/tags")
+async def get_all_tags(os_client: OSClient = Depends(get_os_client)) -> Dict[str, list[str]]:
+    """Fetches mapped unique tags solidly natively from indices."""
+    client = os_client.client
     
     agg_query = {
         "size": 0,

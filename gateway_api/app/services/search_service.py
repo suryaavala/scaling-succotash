@@ -1,10 +1,7 @@
 """Module docstring mapped natively."""
 import logging
-
-"""Deterministic payload compilation routing logic natively mapping queries."""
 from typing import Any, Dict, List
-
-from app.core.opensearch_client import INDEX_NAME, get_opensearch_client
+from app.services.opensearch_client import INDEX_NAME, OSClient
 from app.models.schemas import SearchRequest
 
 logger = logging.getLogger("search_service")
@@ -59,13 +56,12 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     }
     return dsl
 
-def execute_search(request: SearchRequest) -> List[Dict[str, Any]]:
+def execute_search(request: SearchRequest, client: OSClient) -> List[Dict[str, Any]]:
     """Runs compiled logic returning candidate arrays natively."""
-    client = get_opensearch_client()
     dsl = build_search_dsl(request)
     
     try:
-        resp = client.search(index=INDEX_NAME, body=dsl)
+        resp = client.raw_search(index=INDEX_NAME, body=dsl)
         hits = resp["hits"]["hits"]
         results = []
         for hit in hits:
