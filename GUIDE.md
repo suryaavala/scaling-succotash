@@ -169,14 +169,30 @@ def process_agentic_workflow(self, query: str):
 
 ```mermaid
 sequenceDiagram
-    participant Web as Gateway FastAPI
-    participant Q as Redis Broker
-    participant W as Celery Worker
+    participant User
+    participant Gateway as src/api
+    participant Redis as Task Queue
+    participant Worker as src/worker
+    participant LLM as LiteLLM (GPT-4o)
     
-    Web->>Q: Enqueue Agentic Task 123
-    Web-->>User: HTTP 202 (Polling ID)
-    Q->>W: Process 123 (Web Scraping & Gemini Synthesis)
-    W->>Q: Update Task 123 (SUCCESS -> Final Payload)
+    User->>Gateway: POST /search/agentic
+    Gateway->>Redis: Enqueue Agent Task
+    Gateway-->>User: 202 Accepted (Task ID)
+    
+    loop Polling
+        User->>Gateway: GET /tasks/{id}
+        Gateway-->>User: Status: Pending
+    end
+    
+    Redis->>Worker: Consume Task
+    Worker->>LLM: Request Intent Extraction
+    LLM-->>Worker: Parsed Intent JSON
+    Worker->>Worker: Execute External Tools
+    Worker->>Redis: Update Task State (Success + Payload)
+    
+    User->>Gateway: GET /tasks/{id}
+    Gateway->>Redis: Fetch State
+    Gateway-->>User: 200 OK (Final Synthesized Results)
 ```
 
 ---

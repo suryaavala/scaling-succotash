@@ -13,6 +13,25 @@ This repository contains a production-grade, distributed microservices architect
 - **Observability**: OpenTelemetry distributed tracing exported to a native Jaeger instance.
 - **Tooling (V4)**: `uv` for dependency management, `ruff` for linting, and `mypy` for strict typing inside a native `src/` layout.
 
+## V4 Directory Layout
+```text
+project_root/
+├── .github/workflows/ci.yml
+├── docker-compose.yml
+├── Makefile
+├── pyproject.toml
+├── README.md
+├── GUIDE.md
+├── FUTURE.md
+├── src/
+│   ├── api/            # Gateway Web Target
+│   ├── inference/      # ML Target (PyTorch)
+│   ├── worker/         # Celery Synthesizer
+│   ├── frontend/       # Streamlit UI
+│   └── scripts/        # Data Ops
+└── tests/
+```
+
 ## Setup & Running Locally (Docker Compose)
 
 1. **Environment Setup**
