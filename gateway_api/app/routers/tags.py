@@ -34,7 +34,7 @@ async def add_tag(company_id: str, request: TagRequest):
     }
     
     try:
-        response = client.update(index=INDEX_NAME, id=company_id, body=script, refresh=True)
+        client.update(index=INDEX_NAME, id=company_id, body=script, refresh=True)
         return {"status": "success", "tag": tag, "company_id": company_id}
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Company not found")
