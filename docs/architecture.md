@@ -1,8 +1,8 @@
-# V2 Microservices Architecture Details
+# Enterprise B2B Company Search (V4 Architecture)
 
 ## 1. High-Level Distributed Architecture
 
-The system decouples the Streamlit frontend from the FastAPI routing logic, which delegates to specialized service modules depending on whether the query is deterministic or natural language. ML execution is strictly isolated into an unblockable inference thread.
+The system utilizes a production-grade, distributed microservices architecture (V4) designed for high availability and strict compute isolation. It decouples the Streamlit frontend from the FastAPI routing logic, delegating query execution dynamically via **Dependency Injection** and **Strategy Patterns** (`SemanticSearchStrategy`, `AgenticSearchStrategy`). Machine Learning execution is strictly isolated into an unblockable inference thread.
 
 ```mermaid
 graph TD
@@ -12,49 +12,62 @@ graph TD
     classDef ml fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
     classDef dbLayer fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
 
-    UI([Streamlit App<br/>Port 8501]):::frontend
-    Gateway(Gateway API<br/>FastAPI: Port 8000):::apiLayer
-    Inference(Inference Service<br/>PyTorch: Port 8001):::ml
-    Celery(Celery Worker<br/>agent_workflows):::worker
+    UI([Frontend: Streamlit<br/>Port 8501]):::frontend
+    Gateway(Gateway API<br/>FastAPI: src/api):::apiLayer
+    Inference(Inference Service<br/>PyTorch: src/inference):::ml
+    Celery(Async Workers<br/>Celery: src/worker):::worker
     
-    OS[(OpenSearch 2.x<br/>Port 9200)]:::dbLayer
-    Redis[(Redis Cache<br/>Port 6379)]:::dbLayer
+    OS[(Datastore: OpenSearch 2.11<br/>Port 9200)]:::dbLayer
+    Redis[(Semantic Cache & Broker<br/>Redis)]:::dbLayer
     Jaeger[[Jaeger Tracing<br/>Port 16686]]:::dbLayer
 
     %% Traces
-    Gateway -.->|OTel Traces| Jaeger
-    Inference -.->|OTel Traces| Jaeger
+    Gateway -.->|OTLP Traces| Jaeger
+    Inference -.->|OTLP Traces| Jaeger
     
     %% Flows
-    UI -->|HTTP GET/POST /tags| Gateway
-    UI -->|HTTP POST /search| Gateway
+    UI -->|HTTP REST/JSON| Gateway
     Gateway -->|Semantic Intent Cache| Redis
     
     %% Deterministic & Metadata
-    Gateway -->|Tag Management| OS
-    Gateway -->|Deterministic Filter Search| OS
+    Gateway -->|Tag Management & DSL Queries| OS
     
     %% Two Stage Retrieval
     Gateway -->|POST /embed| Inference
-    Gateway -->|Hybrid Search| OS
+    Gateway -->|Vector Search & Hybrid Search| OS
     Gateway -->|POST /rerank| Inference
     
     %% Async Flow
-    Gateway -->|Drop Task| Redis
-    Redis -->|Pick up Job| Celery
-    Celery -->|Write Result| Redis
-    Celery --> OS
+    Gateway -->|Drop Agent Task| Redis
+    Redis -->|Task Queue| Celery
+    Celery -->|Write Synthesis Context| Redis
+    Celery -->|Intent Extraction & Synthesis| LLM[LLM: Gemini 3.1 Flash Lite]
+    Gateway -->|Intent Extraction| LLM
 ```
 
+**Architecture Components & Data Flow (Mapped to `src/` Layout):**
+
+*   **Frontend UI (`src/frontend/`)**: Built with Streamlit, providing deterministic input fields alongside a conversational chat box for natural language queries. It interacts dynamically with the Gateway via REST API calls.
+*   **Gateway API (`src/api/`)**: The highly concurrent FastAPI entry point that routes requests using Dependency Injection. It handles deterministic queries (translating exact payloads into OpenSearch boolean DSL) and intelligent hybrid search (identifying user intent via LiteLLM).
+*   **Datastore (OpenSearch 2.11)**: Acts as both an inverted index for keyword matching (BM25) and a vector database utilizing HNSW graphs for semantic cosine similarity. It operates under strict JVM memory caps (512MB to 1GB) to ensure stable local performance.
+*   **Inference Service (`src/inference/`)**: A dedicated PyTorch+FastAPI container isolating CPU-bound ML matrix math. It generates 384-dimensional dense vectors via `all-MiniLM-L6-v2` natively at the edge, and executes a massive cross-encoder (`ms-marco-MiniLM-L-6-v2`) for pairwise re-ranking.
+*   **Asynchronous Workers (`src/worker/`)**: Deep synthetic LLM tasks parsing heavy news integrations orchestrate smoothly through Redis pub-sub interfaces offloading Celery queues instantly.
+*   **Intelligence Layer**: Powered by LiteLLM bound strictly to `gemini-3.1-flash-lite-preview`. It leverages strict Pydantic JSON enforcement to completely prevent conversational hallucinations and extract precise filtering schemas.
+*   **Observability**: Standard OpenTelemetry (OTLP) headers are securely injected across the HTTP boundary natively into a Jaeger instance. Developers can visually dissect precise execution lengths traversing from the FastAPI Gateway directly into the Inference service on localhost:16686.
+
 ## 2. Two-Stage Retrieval Flow (`/api/v2/search/intelligent`)
+
+*   **Intent Extraction & Semantic Caching**: The gateway hashes the user query to check the Redis semantic cache, preventing expensive repetitive generation costs. If a cache miss occurs, the LLM extracts the search intent into structured JSON using Pydantic.
+*   **Stage 1 (High Recall)**: The Gateway calls the Inference Service to embed the query into a dense vector, then executes a broad k-NN hybrid bounds search inside OpenSearch to retrieve the Top 100 loose candidate companies.
+*   **Stage 2 (High Precision)**: Exactly these 100 text overlaps are sent to the Remote NLP Re-Ranker endpoint (Cross-Encoder) explicitly scoring pairs. This whittles the candidates down to the Top 10, returning incredibly precise mappings globally.
 
 ```mermaid
 sequenceDiagram
     participant UI as Streamlit UI
-    participant Gateway as Gateway API
+    participant Gateway as Gateway API (src/api)
     participant Cache as Redis Cache
     participant LLM as Gemini API
-    participant Inf as Inference Service
+    participant Inf as Inference Service (src/inference)
     participant OS as OpenSearch
 
     UI->>Gateway: POST /api/v2/search/intelligent
@@ -82,12 +95,17 @@ sequenceDiagram
 
 ## 3. Asynchronous Agentic Flow (`POST /api/v2/search/agentic`)
 
+Deep agentic tasks (like contextual competitive synthesis or fetching recent funding news) natively bypass standard thread execution to prevent an immediate HTTP stall:
+1.  **Queue Deferral**: The Gateway intercepts an agentic requirement and drops the context into a Redis semantic task queue, immediately returning an HTTP 202 `task_id`.
+2.  **Background Processing**: The background Celery worker autonomously evaluates the task, calls the simulated Mock API (`search_recent_news`), and triggers the LLM to write a summarized agentic response decoupling totally from Gateway constraints.
+3.  **UI Polling**: The Streamlit frontend utilizes an async polling API checking the Celery status execution flags seamlessly without stalling interfaces using HTTP 202 Accepted.
+
 ```mermaid
 sequenceDiagram
     participant UI as Streamlit UI
-    participant Gateway as Gateway API
+    participant Gateway as Gateway API (src/api)
     participant Redis as Redis Broker
-    participant Celery as Celery Worker
+    participant Celery as Celery Worker (src/worker)
     participant LLM as Gemini API
 
     UI->>Gateway: POST /agentic
