@@ -1,8 +1,8 @@
-# Enterprise B2B Company Search (V4 Architecture)
+# Enterprise B2B Company Search (V5 Architecture)
 
 ## 1. High-Level Distributed Architecture
 
-The system utilizes a production-grade, distributed microservices architecture (V4) designed for high availability and strict compute isolation. It decouples the Streamlit frontend from the FastAPI routing logic, delegating query execution dynamically via **Dependency Injection** and **Strategy Patterns** (`SemanticSearchStrategy`, `AgenticSearchStrategy`). Machine Learning execution is strictly isolated into an unblockable inference thread.
+The system utilizes a production-grade, distributed microservices architecture (V5) designed for extreme concurrency, strict compute isolation, and low-latency I/O scaling. It decouples the Streamlit frontend from the FastAPI routing logic, delegating query execution dynamically via **Dependency Injection** and **Strategy Patterns**. The asynchronous core leverages `asyncio.gather()` bounding concurrent OpenSearch and LiteLLM interactions.
 
 ```mermaid
 graph TD
@@ -28,9 +28,10 @@ graph TD
     %% Flows
     UI -->|HTTP REST/JSON| Gateway
     Gateway -->|Semantic Intent Cache| Redis
+    Gateway -->|Fast-Path Heuristic Routine| Gateway
     
     %% Deterministic & Metadata
-    Gateway -->|Tag Management & DSL Queries| OS
+    Gateway -->|Asyncio Pipelined Gathering| OS
     
     %% Two Stage Retrieval
     Gateway -->|POST /embed| Inference
@@ -42,23 +43,24 @@ graph TD
     Redis -->|Task Queue| Celery
     Celery -->|Write Synthesis Context| Redis
     Celery -->|Intent Extraction & Synthesis| LLM[LLM: Gemini 3.1 Flash Lite]
-    Gateway -->|Intent Extraction| LLM
+    Gateway -->|Intent Extraction via aiohttp/httpx async| LLM
 ```
 
 **Architecture Components & Data Flow (Mapped to `src/` Layout):**
 
 *   **Frontend UI (`src/frontend/`)**: Built with Streamlit, providing deterministic input fields alongside a conversational chat box for natural language queries. It interacts dynamically with the Gateway via REST API calls.
-*   **Gateway API (`src/api/`)**: The highly concurrent FastAPI entry point that routes requests using Dependency Injection. It handles deterministic queries (translating exact payloads into OpenSearch boolean DSL) and intelligent hybrid search (identifying user intent via LiteLLM).
-*   **Datastore (OpenSearch 2.11)**: Acts as both an inverted index for keyword matching (BM25) and a vector database utilizing HNSW graphs for semantic cosine similarity. It operates under strict JVM memory caps (512MB to 1GB) to ensure stable local performance.
+*   **Gateway API (`src/api/`)**: The highly concurrent FastAPI entry point that routes requests using Dependency Injection. It handles deterministic queries and intelligent hybrid search, fully decoupling blocking I/O calls through native Python `asyncio.gather()` functions dynamically scaling concurrency.
+*   **Datastore (OpenSearch 2.11)**: Acts as both an inverted index for keyword matching (BM25) and a vector database utilizing HNSW graphs for semantic cosine similarity. It natively ingests data utilizing bounded `opensearch.helpers.async_bulk` mappings maximizing index performance via `-1` refresh intervals.
 *   **Inference Service (`src/inference/`)**: A dedicated PyTorch+FastAPI container isolating CPU-bound ML matrix math. It generates 384-dimensional dense vectors via `all-MiniLM-L6-v2` natively at the edge, and executes a massive cross-encoder (`ms-marco-MiniLM-L-6-v2`) for pairwise re-ranking.
 *   **Asynchronous Workers (`src/worker/`)**: Deep synthetic LLM tasks parsing heavy news integrations orchestrate smoothly through Redis pub-sub interfaces offloading Celery queues instantly.
-*   **Intelligence Layer**: Powered by LiteLLM bound strictly to `gemini-3.1-flash-lite-preview`. It leverages strict Pydantic JSON enforcement to completely prevent conversational hallucinations and extract precise filtering schemas.
+*   **Intelligence Layer**: Powered by LiteLLM bound strictly to `gemini-3.1-flash-lite-preview`. It leverages strict Pydantic JSON enforcement. Bypassed entirely when incoming strings natively match predefined `FAST_PATH_HEURISTICS` entities (yielding ~0ms network extraction bounds)!
 *   **Observability**: Standard OpenTelemetry (OTLP) headers are securely injected across the HTTP boundary natively into a Jaeger instance. Developers can visually dissect precise execution lengths traversing from the FastAPI Gateway directly into the Inference service on localhost:16686.
 
-## 2. Two-Stage Retrieval Flow (`/api/v2/search/intelligent`)
+## 2. Fast-Path + Two-Stage Retrieval Flow (`/api/v2/search/intelligent`)
 
-*   **Intent Extraction & Semantic Caching**: The gateway hashes the user query to check the Redis semantic cache, preventing expensive repetitive generation costs. If a cache miss occurs, the LLM extracts the search intent into structured JSON using Pydantic.
-*   **Stage 1 (High Recall)**: The Gateway calls the Inference Service to embed the query into a dense vector, then executes a broad k-NN hybrid bounds search inside OpenSearch to retrieve the Top 100 loose candidate companies.
+*   **Fast-Path Recognition**: The Gateway rapidly regexes/matches the lowercased input text against an exact dictionary. If matched, it returns a mapped static JSON Schema instantly effectively bypassing external HTTP calls.
+*   **Intent Extraction & Caching**: The gateway concurrently hashes the user query checking a 24-hour `redis.asyncio` semantic cache while pinging the LLM. 
+*   **Stage 1 (Async High Recall)**: Through internal `asyncio.gather()`, the Gateway calls the Inference Service to embed the query natively parallel matching the explicit intent boundaries! It executes a broad k-NN hybrid bounds search inside OpenSearch retrieving the Top 100 loose candidate companies.
 *   **Stage 2 (High Precision)**: Exactly these 100 text overlaps are sent to the Remote NLP Re-Ranker endpoint (Cross-Encoder) explicitly scoring pairs. This whittles the candidates down to the Top 10, returning incredibly precise mappings globally.
 
 ```mermaid
@@ -71,17 +73,24 @@ sequenceDiagram
     participant OS as OpenSearch
 
     UI->>Gateway: POST /api/v2/search/intelligent
-    Gateway->>Cache: GET intent:{hash}
+    Gateway->>Gateway: FAST_PATH_HEURISTICS Check
     
-    alt Cache Miss
-        Gateway->>LLM: extract_intent(query)
-        LLM-->>Gateway: IntentSchema JSON
-        Gateway->>Cache: SETEX intent:{hash}
+    alt Fast-Path Hit
+        Gateway-->>Gateway: Static IntentSchema Mapping
+    else Normal Execution
+        Gateway->>Cache: GET intent:{hash}
+        alt Cache Miss
+            par Async Execution
+                Gateway->>LLM: aextract_intent(query)
+                Gateway->>Inf: POST /embed
+            end
+            LLM-->>Gateway: IntentSchema JSON
+            Gateway->>Cache: SETEX intent:{hash}
+        end
     end
     
     %% Two Stage
-    Gateway->>Inf: POST /embed
-    Inf-->>Gateway: 384-d vector
+    Inf-->>Gateway: 384-d vector (Concurrent Output)
     Gateway->>OS: Hybrid Search (Match + KNN)
     OS-->>Gateway: Top 100 Base Candidates
     
