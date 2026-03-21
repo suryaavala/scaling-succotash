@@ -45,11 +45,11 @@ with st.sidebar:
     st.header("Standard Filters")
     name_filter = st.text_input("Company Name")
     industry_filter = st.text_input("Industry")
-    size_filter = st.selectbox("Company Size", ["", "<1000", "1000-10000", "10001+"])
+    size_filter = st.selectbox("Company Size", ["", "1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"])
     country_filter = st.text_input("Country")
     tag_filter = st.selectbox("Filter by Tag", [""] + st.session_state.tags)
-    year_from = st.number_input("Founded From", min_value=1800, max_value=2026, value=1900)
-    year_to = st.number_input("Founded To", min_value=1800, max_value=2026, value=2026)
+    year_from = st.number_input("Founded From", min_value=1800, max_value=2026, value=None, placeholder="YYYY")
+    year_to = st.number_input("Founded To", min_value=1800, max_value=2026, value=None, placeholder="YYYY")
 
     if st.button("Apply Filters"):
         from typing import Any
