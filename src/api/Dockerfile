@@ -12,6 +12,6 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev
 
 # Copy entire context natively mapping gracefully smoothly cleanly natively optimally seamlessly flexibly accurately automatically fluently dependably correctly
-COPY . /app
+COPY src /app/src
 
 CMD ["uv", "run", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
