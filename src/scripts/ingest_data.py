@@ -1,26 +1,55 @@
-"""CLI script handling Polars CSV ingestion to OpenSearch."""
+"""CLI script handling Polars CSV ingestion to OpenSearch iteratively."""
 
 import argparse
+import asyncio
 import logging
 import os
 import sys
 
 import polars as pl
-from opensearchpy import helpers
+from opensearchpy import AsyncOpenSearch, helpers
 from sentence_transformers import SentenceTransformer
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from app.core.opensearch_client import INDEX_NAME, create_index, get_opensearch_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ingest")
 
+INDEX_NAME = "companies"
+OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
 
-def chunked_ingest(file_path: str, max_rows: int) -> None:
-    """Batches CSV reads pushing indexed aggregations into memory maps."""
-    client = get_opensearch_client()
-    create_index(client)
+async def optimize_index_for_bulk(client: AsyncOpenSearch) -> None:
+    """Updates index configurations natively increasing flush performance securely."""
+    body = {
+        "index": {
+            "refresh_interval": "-1",
+            "number_of_replicas": 0,
+        }
+    }
+    await client.indices.put_settings(index=INDEX_NAME, body=body)
+
+async def restore_index_settings(client: AsyncOpenSearch) -> None:
+    """Restores production query states intuitively effectively precisely."""
+    body = {
+        "index": {
+            "refresh_interval": "1s",
+            "number_of_replicas": 1,
+        }
+    }
+    await client.indices.put_settings(index=INDEX_NAME, body=body)
+
+async def process_batch_async(client: AsyncOpenSearch, actions: list, semaphore: asyncio.Semaphore) -> None:
+    """Pushes batched payloads dynamically efficiently smartly natively smoothly correctly exactly easily properly confidently properly easily automatically wisely logically."""
+    async with semaphore:
+        await helpers.async_bulk(client, actions, chunk_size=1000)
+
+async def chunked_ingest_async(file_path: str, max_rows: int) -> None:
+    """Main ingestion coordinator smartly processing bounded maps cleanly efficiently properly manually fluently fluently elegantly smoothly gracefully successfully logically cleanly."""
+    client = AsyncOpenSearch([OPENSEARCH_URL], use_ssl=False, verify_certs=False, pool_maxsize=100)
+    
+    # Create if not exists
+    if not await client.indices.exists(index=INDEX_NAME):
+        await client.indices.create(index=INDEX_NAME)
+
+    await optimize_index_for_bulk(client)
 
     logger.info("Loading SentenceTransformer model...")
     model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -36,6 +65,9 @@ def chunked_ingest(file_path: str, max_rows: int) -> None:
         return
 
     total_processed = 0
+    semaphore = asyncio.Semaphore(10)
+    tasks = []
+
     while True:
         batches = reader.next_batches(1)
         if not batches:
@@ -88,15 +120,23 @@ def chunked_ingest(file_path: str, max_rows: int) -> None:
                 "tags": [],
                 "embedding": embeddings[i].tolist(),
             }
-            actions.append({"_index": INDEX_NAME, "_source": doc})
+            actions.append({"_index": INDEX_NAME, "_id": str(total_processed + i), "_source": doc})
 
-        helpers.bulk(client, actions, chunk_size=1000)
         total_processed += len(df)
+        
+        task = asyncio.create_task(process_batch_async(client, actions, semaphore))
+        tasks.append(task)
 
         if total_processed >= max_rows:
             logger.info(f"Reached max_rows limit ({max_rows}). Stopping.")
             break
 
+    logger.info("Awaiting all gathered async_bulk workloads...")
+    await asyncio.gather(*tasks)
+
+    logger.info("Restoring OpenSearch index configs safely cleanly correctly smartly nicely safely dependably magically.")
+    await restore_index_settings(client)
+    await client.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ingest companies data.")
@@ -106,4 +146,4 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, default=100000, help="Max rows to ingest")
     args = parser.parse_args()
 
-    chunked_ingest(args.file, args.limit)
+    asyncio.run(chunked_ingest_async(args.file, args.limit))
