@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: setup install format lint typecheck test run-gateway run-inference run-worker clean up down restart logs
+.PHONY: setup install format lint typecheck test run-gateway run-inference run-worker clean up down restart logs ingest all
 
 # Environment Setup
 setup:
@@ -9,6 +9,8 @@ setup:
 
 install:
 	uv sync
+
+all: install format lint typecheck test
 
 # Code Quality & Formatting
 format:
@@ -43,6 +45,10 @@ clean:
 	rm -rf .pytest_cache
 	rm -rf .mypy_cache
 	rm -rf .ruff_cache
+	rm -rf .uv_cache
+	rm -rf .sandbox_venv
+	rm -rf .tmp
+	rm -rf archive
 	find . -type d -name "__pycache__" -exec rm -r {} +
 
 # Docker Operations
@@ -57,3 +63,7 @@ restart:
 
 logs:
 	docker compose logs -f
+
+# Data Management
+ingest: install
+	uv run python src/scripts/ingest_data.py
