@@ -24,7 +24,7 @@ def test_intelligent_search() -> None:
 
     with patch(
         "src.api.services.llm_router.LLMClient.extract_intent",
-        return_value={"requires_agent": False},
+        return_value=({"requires_agent": False}, False),
     ):
         resp = client.post("/api/v2/search/intelligent", json={"query": "test query"})
 

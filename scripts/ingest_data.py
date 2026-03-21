@@ -133,6 +133,10 @@ async def chunked_ingest_async(file_path: str, max_rows: int) -> None:
         "Restoring OpenSearch index configs safely cleanly correctly smartly nicely safely dependably magically."
     )
     await restore_index_settings(client)
+
+    logger.info("Running manual _forcemerge to optimize segments...")
+    await client.indices.forcemerge(index=INDEX_NAME)
+
     await client.close()
 
 

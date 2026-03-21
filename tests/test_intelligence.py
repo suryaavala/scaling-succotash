@@ -25,7 +25,7 @@ async def test_extract_intent_deterministic(mock_completion: Any) -> None:
     mock_completion.return_value = MockResponse()
 
     client = LLMClient()
-    intent = await client.extract_intent("tech companies in us")
+    intent, is_cached = await client.extract_intent("tech companies in us")
     assert intent["industry"] == "technology"
     assert intent["country"] == "us"
     assert intent["requires_agent"] is False

@@ -6,6 +6,8 @@ import pstats
 import time
 from pathlib import Path
 
+from fastapi import Response
+
 from src.api.models.schemas import IntelligentSearchRequest, SearchRequest
 from src.api.routers import search
 from src.api.services.llm_router import get_llm_client
@@ -23,10 +25,10 @@ async def run_single(worker_id: int) -> None:
         await search.deterministic_search(req_standard, os_client)
     elif worker_id % 10 < 9:
         req_intel = IntelligentSearchRequest(query="Cloud providers supporting Kubernetes")
-        await search.intelligent_search(req_intel, os_client, llm_client)
+        await search.intelligent_search(req_intel, Response(), os_client, llm_client)
     else:
         req_intel_agent = IntelligentSearchRequest(query="Latest acquisitions by Microsoft in AI")
-        await search.intelligent_search(req_intel_agent, os_client, llm_client)
+        await search.intelligent_search(req_intel_agent, Response(), os_client, llm_client)
 
 
 async def run_load_test() -> None:

@@ -45,7 +45,7 @@ FAST_PATH_HEURISTICS: Dict[str, Dict[str, Any]] = {
 class LLMClient:
     """Injected Singleton evaluating LLM completion queries securely."""
 
-    async def extract_intent(self, query: str) -> Dict[str, Any]:
+    async def extract_intent(self, query: str) -> tuple[Dict[str, Any], bool]:
         """Resolves JSON intelligence parameters securely."""
         query_lower = query.lower().strip()
 
@@ -53,12 +53,12 @@ class LLMClient:
         for path, intent in FAST_PATH_HEURISTICS.items():
             if path in query_lower:
                 logger.info("Fast-Path Heuristic triggered. Bypassing LLM execution natively.")
-                return intent
+                return intent, True
 
         cached = await get_cached_intent(query)
         if cached is not None:
             logger.info("Found intent in Redis cache. Bypassing LLM execution natively.")
-            return cached
+            return cached, True
 
         import os
 
@@ -67,7 +67,7 @@ class LLMClient:
 
             await asyncio.sleep(float(os.getenv("MOCK_LLM_LATENCY", "1.0")))
             requires_agent = "recent" in query.lower() or "who" in query.lower()
-            return {"industry": "Software", "requires_agent": requires_agent}
+            return {"industry": "Software", "requires_agent": requires_agent}, False
 
         try:
             response = await acompletion(
@@ -92,10 +92,10 @@ class LLMClient:
                 intent = IntentSchema.model_validate(content).model_dump()
 
             await set_cached_intent(query, intent)
-            return cast(Dict[str, Any], json.loads(content))
+            return cast(Dict[str, Any], json.loads(content)), False
         except Exception as e:
             logger.error(f"Intent extraction failed: {e}")
-            return IntentSchema().model_dump()
+            return IntentSchema().model_dump(), False
 
 
 def get_llm_client() -> LLMClient:

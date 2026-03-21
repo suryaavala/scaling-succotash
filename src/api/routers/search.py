@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from src.api.models.schemas import (
     IntelligentSearchRequest,
@@ -35,11 +35,17 @@ async def deterministic_search(request: SearchRequest, os_client: OSClient = Dep
 @router.post("/intelligent", response_model=IntelligentSearchResponse)
 async def intelligent_search(
     request: IntelligentSearchRequest,
+    response: Response,
     os_client: OSClient = Depends(get_os_client),
     llm_client: LLMClient = Depends(get_llm_client),
 ) -> IntelligentSearchResponse:
     """Routes intelligent queries via defined Strategies."""
-    intent, vector = await asyncio.gather(llm_client.extract_intent(request.query), get_embedding(request.query))
+    intent_result, vector = await asyncio.gather(llm_client.extract_intent(request.query), get_embedding(request.query))
+    intent, is_cached = intent_result
+
+    if is_cached:
+        response.headers["X-Cache-Hit"] = "true"
+
     candidates = await os_client.two_stage_retrieval(request.query, intent, vector)
 
     strategy: IntelligentSearchStrategy
