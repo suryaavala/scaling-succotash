@@ -65,5 +65,17 @@ logs:
 	docker compose logs -f
 
 # Data Management
+download-data:
+	uv run python scripts/download_dataset.py
+
+generate-data:
+	uv run python scripts/generate_mock_data.py --rows 100000
+
+ingest-sample:
+	docker compose run --rm -e LIMIT=100000 -e DATA_FILE=mock_companies.csv data_ingester
+
+ingest-full:
+	docker compose run --rm -e LIMIT=7000000 -e DATA_FILE=companies.csv data_ingester
+
 ingest:
 	uv run python scripts/ingest_data.py
