@@ -47,7 +47,7 @@ async def run_load_test():
     profile_dir = Path("docs/performance")
     profile_dir.mkdir(parents=True, exist_ok=True)
     
-    with open(profile_dir / "baseline_stats.csv", "w", encoding="utf-8") as f:
+    with open(profile_dir / "optimized_stats.csv", "w", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Type", "Name", "Request Count", "Failure Count", "Median Response Time", "Average Response Time", "Min Response Time", "Max Response Time", "Requests/s", "Failures/s", "50%", "95%", "99%", "99.9%"])
         

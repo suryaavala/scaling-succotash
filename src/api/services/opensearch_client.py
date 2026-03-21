@@ -40,9 +40,12 @@ async def get_embedding(text: str) -> list[float]:
     """Generates embedding representations explicitly connecting models."""
     if not _http_client:
         return [0.0] * 384
-    resp = await _http_client.post(f"{INFERENCE_URL}/embed", json={"text": text})
-    resp.raise_for_status()
-    return cast(list[float], resp.json()["vector"])
+    try:
+        resp = await _http_client.post(f"{INFERENCE_URL}/embed", json={"text": text})
+        resp.raise_for_status()
+        return cast(list[float], resp.json()["vector"])
+    except Exception:
+        return [0.0] * 384
 
 
 async def get_rerank_scores(query: str, candidates: list[str]) -> list[float]:
@@ -70,14 +73,9 @@ class OSClient:
         return cast(Dict[str, Any], await self.client.search(index=index, body=body))
 
     async def two_stage_retrieval(
-        self, query: str, intent: Dict[str, Any]
+        self, query: str, intent: Dict[str, Any], vector: list[float]
     ) -> list[Dict[str, Any]]:
         """Maps broad hybrid execution explicitly formatting hits."""
-        try:
-            vector = await get_embedding(query)
-        except Exception as e:
-            logger.error(f"Inference embed error: {e}")
-            vector = [0.0] * 384
 
         bool_query: Dict[str, Any] = {
             "should": [
