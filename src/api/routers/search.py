@@ -13,12 +13,15 @@ from src.api.models.schemas import (
 from src.api.services.llm_router import LLMClient, get_llm_client
 from src.api.services.opensearch_client import OSClient, get_os_client
 from src.api.services.search_service import execute_search
+import asyncio
+
 from src.api.services.search_strategies import (
     AgenticSearchStrategy,
     IntelligentSearchStrategy,
     SearchContext,
     SemanticSearchStrategy,
 )
+from src.api.services.opensearch_client import get_embedding
 
 router = APIRouter(prefix="/api/v2/search", tags=["Search API V2"])
 logger = logging.getLogger("search")
@@ -40,8 +43,11 @@ async def intelligent_search(
     llm_client: LLMClient = Depends(get_llm_client),
 ) -> IntelligentSearchResponse:
     """Routes intelligent queries via defined Strategies."""
-    intent = llm_client.extract_intent(request.query)
-    candidates = os_client.two_stage_retrieval(request.query, intent)
+    intent, vector = await asyncio.gather(
+        llm_client.extract_intent(request.query),
+        get_embedding(request.query)
+    )
+    candidates = await os_client.two_stage_retrieval(request.query, intent, vector)
 
     strategy: IntelligentSearchStrategy
     if intent.get("requires_agent"):

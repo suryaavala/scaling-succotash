@@ -1,0 +1,40 @@
+Total Execution Time natively gracefully smartly smoothly correctly: 405.33 seconds
+
+         1623993 function calls (1620866 primitive calls) in 405.315 seconds
+
+   Ordered by: cumulative time
+   List reduced from 929 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000  405.319  405.319 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py:160(run)
+        3    0.000    0.000  405.318  135.106 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py:617(run_until_complete)
+        1    0.000    0.000  405.318  405.318 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py:86(run)
+        3    0.001    0.000  405.318  135.106 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py:593(run_forever)
+        9    0.003    0.000  405.317   45.035 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py:1845(_run_once)
+     1007    0.002    0.000  405.313    0.402 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/events.py:78(_run)
+     1007    0.004    0.000  405.312    0.402 {method 'run' of '_contextvars.Context' objects}
+      500    0.004    0.000  405.294    0.811 /Users/surya/Development/surya/scaling-succotash/native_baseline.py:14(run_single)
+      200    0.004    0.000  403.728    2.019 /Users/surya/Development/surya/scaling-succotash/src/api/routers/search.py:36(intelligent_search)
+      200    0.005    0.000  401.467    2.007 /Users/surya/Development/surya/scaling-succotash/src/api/services/llm_router.py:30(extract_intent)
+      200  401.200    2.006  401.200    2.006 {built-in method time.sleep}
+      700    0.016    0.000    2.584    0.004 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:592(urlopen)
+      500    0.008    0.000    2.404    0.005 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/opensearchpy/client/utils.py:142(_wrapped)
+      700    0.009    0.000    2.401    0.003 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:377(_make_request)
+      500    0.002    0.000    2.395    0.005 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/opensearchpy/client/__init__.py:2178(search)
+      500    0.006    0.000    2.376    0.005 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/opensearchpy/transport.py:378(perform_request)
+      500    0.012    0.000    2.334    0.005 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/opensearchpy/connection/http_urllib3.py:232(perform_request)
+      200    0.007    0.000    2.254    0.011 /Users/surya/Development/surya/scaling-succotash/src/api/services/opensearch_client.py:46(two_stage_retrieval)
+      500    0.013    0.000    1.785    0.004 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/urllib3/connection.py:540(getresponse)
+      500    0.003    0.000    1.683    0.003 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/http/client.py:1342(getresponse)
+      500    0.008    0.000    1.667    0.003 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/http/client.py:318(begin)
+      500    0.006    0.000    1.557    0.003 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/http/client.py:285(_read_status)
+     2000    0.005    0.000    1.550    0.001 {method 'readline' of '_io.BufferedReader' objects}
+      500    0.003    0.000    1.545    0.003 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/socket.py:692(readinto)
+      500    1.542    0.003    1.542    0.003 {method 'recv_into' of '_socket.socket' objects}
+      300    0.001    0.000    1.397    0.005 /Users/surya/Development/surya/scaling-succotash/src/api/routers/search.py:27(deterministic_search)
+      300    0.005    0.000    1.392    0.005 /Users/surya/Development/surya/scaling-succotash/src/api/services/search_service.py:63(execute_search)
+      300    0.001    0.000    1.352    0.005 /Users/surya/Development/surya/scaling-succotash/src/api/services/opensearch_client.py:42(raw_search)
+      200    0.002    0.000    1.164    0.006 /Users/surya/Development/surya/scaling-succotash/src/api/services/opensearch_client.py:17(get_embedding)
+      200    0.001    0.000    1.162    0.006 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/requests/api.py:103(post)
+
+

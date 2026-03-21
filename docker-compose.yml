@@ -41,9 +41,10 @@ services:
   gateway_api:
     build:
       context: .
-      dockerfile: ./gateway_api/Dockerfile
+      dockerfile: ./src/api/Dockerfile
     container_name: gateway_api
     environment:
+      - PROFILING_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENSEARCH_URL=http://opensearch:9200
       - REDIS_URL=redis://redis:6379/0
@@ -59,7 +60,7 @@ services:
   inference_service:
     build:
       context: .
-      dockerfile: ./inference_service/Dockerfile
+      dockerfile: ./src/inference/Dockerfile
     container_name: inference_service
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -74,7 +75,7 @@ services:
   celery_worker:
     build:
       context: .
-      dockerfile: ./worker/Dockerfile
+      dockerfile: ./src/worker/Dockerfile
     container_name: celery_worker
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -87,7 +88,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: ./frontend/Dockerfile
+      dockerfile: ./src/frontend/Dockerfile
     container_name: frontend
     ports:
       - "8501:8501"

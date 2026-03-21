@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any, Dict, Optional, cast
 
-from litellm import completion
+from litellm import acompletion
 from pydantic import BaseModel
 
 from src.api.core.redis_cache import get_cached_intent, set_cached_intent
@@ -27,17 +27,24 @@ class IntentSchema(BaseModel):
 class LLMClient:
     """Injected Singleton evaluating LLM completion queries securely."""
 
-    def extract_intent(self, query: str) -> Dict[str, Any]:
-        """Resolves JSON intelligence parameters synchronously."""
-        cached = get_cached_intent(query)
+    async def extract_intent(self, query: str) -> Dict[str, Any]:
+        """Resolves JSON intelligence parameters securely."""
+        cached = await get_cached_intent(query)
         if cached is not None:
             logger.info(
                 "Found intent in Redis cache. Bypassing LLM execution natively."
             )
             return cached
 
+        import os
+        if os.getenv("MOCK_LLM_LATENCY"):
+            import asyncio
+            await asyncio.sleep(float(os.getenv("MOCK_LLM_LATENCY", "1.0")))
+            requires_agent = "recent" in query.lower() or "who" in query.lower()
+            return {"industry": "Software", "requires_agent": requires_agent}
+
         try:
-            response = completion(
+            response = await acompletion(
                 model="gemini/gemini-3.1-flash-lite-preview",
                 messages=[
                     {
@@ -58,7 +65,7 @@ class LLMClient:
             else:
                 intent = IntentSchema.model_validate(content).model_dump()
 
-            set_cached_intent(query, intent)
+            await set_cached_intent(query, intent)
             return cast(Dict[str, Any], json.loads(content))
         except Exception as e:
             logger.error(f"Intent extraction failed: {e}")
