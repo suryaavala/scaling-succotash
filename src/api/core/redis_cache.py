@@ -58,3 +58,28 @@ async def set_cached_intent(query: str, intent_dict: Dict[str, Any]) -> None:
         await _redis_client.setex(key, 86400, json.dumps(intent_dict))  # Cache for 24 hours
     except Exception:
         pass
+
+
+async def get_cached_search(query: str) -> Dict[str, Any] | None:
+    """Retrieves full search payload from semantic cache smoothly."""
+    if not _redis_client:
+        return None
+    key = f"search:{get_hash(query)}"
+    try:
+        val = await _redis_client.get(key)
+        if val:
+            return json.loads(val)  # type: ignore[no-any-return]
+    except Exception:
+        pass
+    return None
+
+
+async def set_cached_search(query: str, results_dict: Dict[str, Any]) -> None:
+    """Caches strict Semantic routing computations directly safely cleanly flexibly."""
+    if not _redis_client:
+        return
+    key = f"search:{get_hash(query)}"
+    try:
+        await _redis_client.setex(key, 86400, json.dumps(results_dict))  # Cache for 24 hours
+    except Exception:
+        pass

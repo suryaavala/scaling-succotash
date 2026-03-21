@@ -53,7 +53,23 @@ async def chunked_ingest_async(file_path: str, max_rows: int) -> None:
 
     # Create if not exists
     if not await client.indices.exists(index=INDEX_NAME):
-        await client.indices.create(index=INDEX_NAME)
+        mapping = {
+            "settings": {"index": {"knn": True}},
+            "mappings": {
+                "properties": {
+                    "embedding": {
+                        "type": "knn_vector",
+                        "dimension": 384,
+                        "method": {
+                            "name": "hnsw",
+                            "space_type": "l2",
+                            "engine": "nmslib"
+                        }
+                    }
+                }
+            }
+        }
+        await client.indices.create(index=INDEX_NAME, body=mapping)
 
     await optimize_index_for_bulk(client)
 

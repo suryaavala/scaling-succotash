@@ -52,7 +52,7 @@ async def get_rerank_scores(query: str, candidates: list[str]) -> list[float]:
     """Generates precision relevance constraints routing natively."""
     if not candidates or not _http_client:
         return []
-    resp = await _http_client.post(f"{INFERENCE_URL}/rerank", json={"query": query, "candidates": candidates})
+    resp = await _http_client.post(f"{INFERENCE_URL}/rerank", json={"query": query, "documents": candidates})
     resp.raise_for_status()
     return cast(list[float], resp.json()["scores"])
 
