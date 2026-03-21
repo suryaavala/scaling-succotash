@@ -13,9 +13,7 @@ def test_build_search_dsl_empty() -> None:
 
 def test_build_search_dsl_filters() -> None:
     """Native test execution mapping bound."""
-    req = SearchRequest(
-        name="IBM", industry="Technology", country="US", year_from=1900, year_to=2000
-    )
+    req = SearchRequest(name="IBM", industry="Technology", country="US", year_from=1900, year_to=2000)
     dsl = build_search_dsl(req)
 
     bool_query = dsl["query"]["bool"]

@@ -18,19 +18,13 @@ def search_recent_news(company_domain: str | None) -> str:
     """Invokes simulated external intelligence retrieval."""
     if not company_domain:
         return "No recent news available."
-    return (
-        f"Recent news for {company_domain}: Announced $10M Series A funding last month."
-    )
+    return f"Recent news for {company_domain}: Announced $10M Series A funding last month."
 
 
 # Celery's task decorator lacks proper type hints
-@celery_app.task(bind=True, max_retries=3)  # type: ignore[untyped-decorator]
-def synthesize_agent_response(self: Any, task_data: Dict[str, Any]) -> Dict[str, Any]:
+@celery_app.task(bind=True, max_retries=3, name="tasks.agent_workflows.synthesize_agent_response")  # type: ignore[untyped-decorator]
+def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, Any]]) -> Dict[str, Any]:
     """Coordinates nested search synthesis natively evaluating models."""
-    # Extract query and candidates from task_data
-    query = task_data.get("query", "")
-    candidates = task_data.get("candidates", [])
-
     if not candidates:
         return {"summary": "No relevant companies found to perform external search on."}
 
@@ -38,10 +32,7 @@ def synthesize_agent_response(self: Any, task_data: Dict[str, Any]) -> Dict[str,
     for c in candidates:
         domain = c.get("website")
         news = search_recent_news(domain)
-        context += (
-            f"Company: {c.get('name')} | Industry: {c.get('industry')} | "
-            f"News: {news}\n\n"
-        )
+        context += f"Company: {c.get('name')} | Industry: {c.get('industry')} | News: {news}\n\n"
 
     prompt = (
         f"Context:\n{context}\n\n"

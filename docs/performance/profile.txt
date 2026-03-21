@@ -1,0 +1,40 @@
+Total Execution Time natively gracefully smartly smoothly correctly: 0.42 seconds
+
+         180990 function calls (179406 primitive calls) in 0.419 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1386 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.420    0.420 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py:160(run)
+        3    0.000    0.000    0.419    0.140 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py:617(run_until_complete)
+        1    0.000    0.000    0.419    0.419 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/runners.py:86(run)
+        3    0.000    0.000    0.419    0.140 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py:593(run_forever)
+       12    0.003    0.000    0.419    0.035 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py:1845(_run_once)
+     2007    0.002    0.000    0.414    0.000 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/events.py:78(_run)
+     2007    0.003    0.000    0.413    0.000 {method 'run' of '_contextvars.Context' objects}
+      700    0.002    0.000    0.393    0.001 /Users/surya/Development/surya/scaling-succotash/scripts/native_baseline.py:17(run_single)
+      400    0.002    0.000    0.385    0.001 /Users/surya/Development/surya/scaling-succotash/src/api/routers/search.py:35(intelligent_search)
+      200    0.000    0.000    0.291    0.001 /Users/surya/Development/surya/scaling-succotash/src/api/services/search_strategies.py:44(execute_search)
+       50    0.000    0.000    0.290    0.006 /Users/surya/Development/surya/scaling-succotash/src/api/services/search_strategies.py:30(execute)
+       50    0.000    0.000    0.282    0.006 /Users/surya/Development/surya/scaling-succotash/src/api/routers/async_tasks.py:19(dispatch_agentic_search)
+       50    0.002    0.000    0.282    0.006 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/celery/app/base.py:820(send_task)
+     34/9    0.000    0.000    0.121    0.013 <frozen importlib._bootstrap>:1165(_find_and_load)
+     32/7    0.000    0.000    0.120    0.017 <frozen importlib._bootstrap>:1120(_find_and_load_unlocked)
+        8    0.000    0.000    0.119    0.015 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/kombu/utils/imports.py:11(symbol_by_name)
+        8    0.000    0.000    0.119    0.015 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/importlib/__init__.py:108(import_module)
+     10/8    0.000    0.000    0.119    0.015 <frozen importlib._bootstrap>:1192(_gcd_import)
+     31/8    0.000    0.000    0.118    0.015 <frozen importlib._bootstrap>:666(_load_unlocked)
+     31/8    0.000    0.000    0.118    0.015 <frozen importlib._bootstrap_external>:934(exec_module)
+    98/18    0.000    0.000    0.114    0.006 <frozen importlib._bootstrap>:233(_call_with_frames_removed)
+       31    0.000    0.000    0.104    0.003 <frozen importlib._bootstrap_external>:1007(get_code)
+       50    0.000    0.000    0.102    0.002 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/celery/app/amqp.py:500(send_task_message)
+       50    0.000    0.000    0.102    0.002 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/kombu/messaging.py:122(publish)
+   100/50    0.001    0.000    0.099    0.002 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/kombu/connection.py:548(_ensured)
+       50    0.000    0.000    0.098    0.002 /Users/surya/Development/surya/scaling-succotash/.venv/lib/python3.11/site-packages/kombu/messaging.py:196(_publish)
+      201    0.002    0.000    0.097    0.000 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/tasks.py:728(gather)
+      903    0.001    0.000    0.094    0.000 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/tasks.py:662(_ensure_future)
+      903    0.087    0.000    0.091    0.000 /usr/local/Cellar/python@3.11/3.11.7_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py:429(create_task)
+     31/8    0.000    0.000    0.079    0.010 {built-in method builtins.exec}
+
+

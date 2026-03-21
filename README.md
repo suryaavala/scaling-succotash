@@ -58,6 +58,7 @@ project_root/
    - Gateway OpenAPI Docs: `http://localhost:8000/docs`
    - Inference OpenAPI Docs: `http://localhost:8001/docs`
    - Jaeger Tracing UI: `http://localhost:16686`
+   - Opensearch Dashboard UI: `http://localhost:5601`
 
 ## Documentation
 - `docs/architecture.md`: Detailed distributed workflows and Mermaid diagrams.

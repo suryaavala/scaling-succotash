@@ -1,6 +1,6 @@
 """Module docstring mapped natively."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -13,16 +13,18 @@ client = TestClient(app)
 def test_intelligent_search() -> None:
     """Native test execution mapping bound."""
     mock_os_client = MagicMock()
-    mock_os_client.two_stage_retrieval.return_value = [
-        {"id": "1", "name": "Test1"},
-        {"id": "2", "name": "Test2"},
-    ]
+    mock_os_client.two_stage_retrieval = AsyncMock(
+        return_value=[
+            {"id": "1", "name": "Test1"},
+            {"id": "2", "name": "Test2"},
+        ]
+    )
 
     app.dependency_overrides[get_os_client] = lambda: mock_os_client
 
     with patch(
         "src.api.services.llm_router.LLMClient.extract_intent",
-        return_value={"requires_agent": False},
+        return_value=({"requires_agent": False}, False),
     ):
         resp = client.post("/api/v2/search/intelligent", json={"query": "test query"})
 

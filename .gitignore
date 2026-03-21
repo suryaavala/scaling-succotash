@@ -84,3 +84,10 @@ spec/
 uvicorn.log
 markdown_archive/
 md_export/
+.pytest_cache/
+.mypy_cache/
+.uv_cache/
+.sandbox_venv/
+.tmp/
+archive/
+.venv/

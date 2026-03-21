@@ -2,6 +2,8 @@ services:
   opensearch:
     image: opensearchproject/opensearch:2.11.0
     container_name: opensearch
+    volumes:
+      - ./data/opensearch:/usr/share/opensearch/data
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
@@ -41,9 +43,12 @@ services:
   gateway_api:
     build:
       context: .
-      dockerfile: ./gateway_api/Dockerfile
+      dockerfile: ./src/api/Dockerfile
     container_name: gateway_api
+    volumes:
+      - ./src/:/app/src
     environment:
+      - PROFILING_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENSEARCH_URL=http://opensearch:9200
       - REDIS_URL=redis://redis:6379/0
@@ -59,8 +64,10 @@ services:
   inference_service:
     build:
       context: .
-      dockerfile: ./inference_service/Dockerfile
+      dockerfile: ./src/inference/Dockerfile
     container_name: inference_service
+    volumes:
+      - ./src/:/app/src
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     ports:
@@ -74,8 +81,10 @@ services:
   celery_worker:
     build:
       context: .
-      dockerfile: ./worker/Dockerfile
+      dockerfile: ./src/worker/Dockerfile
     container_name: celery_worker
+    volumes:
+      - ./src/:/app/src
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - REDIS_URL=redis://redis:6379/0
@@ -87,11 +96,24 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: ./frontend/Dockerfile
+      dockerfile: ./src/frontend/Dockerfile
     container_name: frontend
+    volumes:
+      - ./src/:/app/src
     ports:
       - "8501:8501"
     environment:
       - API_URL=http://gateway_api:8000
     depends_on:
       - gateway_api
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    container_name: opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    depends_on:
+      - opensearch

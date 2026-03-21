@@ -60,13 +60,13 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
     return dsl
 
 
-def execute_search(request: SearchRequest, client: OSClient) -> List[Dict[str, Any]]:
+async def execute_search(request: SearchRequest, client: OSClient) -> List[Dict[str, Any]]:
     """Runs compiled logic returning candidate arrays natively."""
     dsl = build_search_dsl(request)
 
     try:
-        resp = client.raw_search(index=INDEX_NAME, body=dsl)
-        hits = resp["hits"]["hits"]
+        resp = await client.raw_search(index=INDEX_NAME, body=dsl)
+        hits = list(resp.get("hits", {}).get("hits", []))
         results = []
         for hit in hits:
             src = hit["_source"]
