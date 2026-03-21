@@ -90,8 +90,28 @@ if intelligent_query:
             r = requests.post(f"{API_URL}/search/intelligent", json={"query": intelligent_query})
             if r.status_code == 200:
                 data = r.json()
-                st.session_state.results = data.get("search_results", {}).get("results", [])
-                st.session_state.agent_answer = data.get("agentic_answer")
+                st.session_state.results = data.get("results", [])
+                st.session_state.agent_answer = None
+
+                task_id = data.get("agentic_task_id")
+                if task_id:
+                    import time
+                    with st.spinner("Waiting for agentic synthesis from Celery..."):
+                        for _ in range(15):
+                            time.sleep(1.5)
+                            status_r = requests.get(f"{API_URL}/search/agentic/{task_id}")
+                            if status_r.status_code == 200:
+                                status_data = status_r.json()
+                                if status_data.get("status") == "SUCCESS":
+                                    result_obj = status_data.get("result", {})
+                                    if isinstance(result_obj, dict):
+                                        st.session_state.agent_answer = result_obj.get("summary")
+                                    else:
+                                        st.session_state.agent_answer = str(result_obj)
+                                    break
+                                elif status_data.get("status") in ("FAILURE", "failed"):
+                                    st.session_state.agent_answer = "Agent synthesis failed: " + str(status_data.get("result"))
+                                    break
     except Exception:
         st.error("Failed to connect to Intelligent API.")
 
