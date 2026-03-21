@@ -66,4 +66,4 @@ logs:
 
 # Data Management
 ingest: install
-	uv run python src/scripts/ingest_data.py
+	uv run python scripts/ingest_data.py
