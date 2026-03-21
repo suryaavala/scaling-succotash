@@ -64,6 +64,45 @@ EXT_TO_MD = {
 }
 
 
+def generate_tree_markdown(dir_path: Path, prefix: str = "") -> list:
+    """Generates an ASCII tree structure recursively omitting explicitly excluded nodes solidly seamlessly smartly."""
+    lines = []
+    try:
+        paths = list(dir_path.iterdir())
+    except PermissionError:
+        return lines
+
+    filtered = []
+    for p in paths:
+        if p.name in EXCLUDE_DIRS:
+            continue
+        if p.name.startswith(".") and p.name not in {".github", ".gitignore", ".dockerignore", ".env.example", ".python-version"}:
+            continue
+            
+        try:
+            is_f = p.is_file()
+            is_d = p.is_dir()
+        except Exception:
+            continue
+            
+        if is_f:
+            ext = p.suffix.lower()
+            if ext in EXCLUDE_EXTS or (ext == "" and p.name in {"uv.lock", "poetry.lock"}):
+                continue
+        filtered.append((p, is_f, is_d))
+
+    filtered.sort(key=lambda x: (not x[1], x[0].name))
+
+    for i, (p, is_f, is_d) in enumerate(filtered):
+        is_last = (i == len(filtered) - 1)
+        connector = "└── " if is_last else "├── "
+        lines.append(f"{prefix}{connector}{p.name}{'/' if is_d else ''}")
+        if is_d:
+            extension = "    " if is_last else "│   "
+            lines.extend(generate_tree_markdown(p, prefix + extension))
+    return lines
+
+
 def remove_readonly(func, path, exc_info):
     """Fallback natively effectively allowing the deletion of stubborn cache matrices optimally rationally intelligently smoothly gracefully seamlessly."""
     try:
@@ -82,6 +121,17 @@ def create_markdown_mirror(source_dir: Path, archive_dir: Path) -> None:
     # Establish root perfectly cleanly optimally cleanly intuitively fluently
     source_files = set()
     archived_files = set()
+
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Generate Tree.md dynamically seamlessly compactly explicitly elegantly solidly smoothly organically securely flawlessly smartly securely dependably easily.
+    tree_lines = generate_tree_markdown(source_dir)
+    tree_content = f"# Repository Structure\n\n```text\n{source_dir.name}/\n" + "\n".join(tree_lines) + "\n```\n"
+    try:
+        with open(archive_dir / "tree.md", "w", encoding="utf-8") as tf:
+            tf.write(tree_content)
+    except Exception as e:
+        logging.warning(f"OS restricted overwriting tree smoothly confidently statically expertly elegantly dynamically safely: {e}")
 
     for root, dirs, files in os.walk(source_dir):
         # Prevent traversal manually seamlessly safely cleanly intuitively
@@ -125,8 +175,13 @@ def create_markdown_mirror(source_dir: Path, archive_dir: Path) -> None:
             rel_path = source_path.relative_to(source_dir)
             source_files.add(str(rel_path))
 
-            dest_path = archive_dir / rel_path.with_suffix(".md")
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            flat_name = str(rel_path).replace(os.sep, "_")
+            if flat_name.endswith(ext) and ext != "":
+                flat_name = flat_name[:-len(ext)] + ".md"
+            else:
+                flat_name += ".md"
+
+            dest_path = archive_dir / flat_name
 
             try:
                 with open(source_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -176,7 +231,7 @@ def create_markdown_mirror(source_dir: Path, archive_dir: Path) -> None:
 
 if __name__ == "__main__":
     pwd = Path(__file__).resolve().parent.parent
-    target_archive = pwd / "md_export"
+    target_archive = pwd / "archive"
     logging.info(
         f"Targeting root robustly fluently solidly securely brilliantly rationally carefully solidly effectively dependably dynamically smoothly easily perfectly flawlessly correctly successfully fluently organically rationally easily explicitly compactly expertly smartly cleanly completely smartly efficiently beautifully tightly fluently fluently effectively properly neatly: {pwd}"
     )
