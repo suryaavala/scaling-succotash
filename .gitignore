@@ -82,3 +82,5 @@ docs/pr_descriptions/
 spec/
 
 uvicorn.log
+markdown_archive/
+md_export/
