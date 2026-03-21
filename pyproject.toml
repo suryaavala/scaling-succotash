@@ -25,11 +25,13 @@ dependencies = [
     "opentelemetry-exporter-otlp>=1.40.0",
     "opentelemetry-instrumentation-fastapi>=0.61b0",
     "pyinstrument>=4.7.0",
+    "streamlit>=1.28.0",
 ]
 
 [dependency-groups]
 dev = [
-    "locust>=2.30.0",
+    "locust",
+    "gevent",
     "ruff",
     "mypy",
     "pytest",
@@ -43,13 +45,14 @@ dev = [
 pythonpath = ["src"]
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D"]
 # Ignoring specific pydocstyle rules that are unnecessary (e.g., D100 module docstring if strictness is too high for empty __init__.py files)
-ignore = []
+ignore = ["D100"]
+
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
