@@ -193,8 +193,10 @@ def create_markdown_mirror(source_dir: Path, archive_dir: Path) -> None:
                         out.write(content)
                 else:
                     lang = EXT_TO_MD.get(ext, "")
+                    if not lang:
+                        lang = "text"
                     with open(dest_path, "w", encoding="utf-8") as out:
-                        out.write(f"```{lang}\n{content}\n```\n")
+                        out.write(f"# {lang}\n\n{content}\n")
 
                 archived_files.add(str(rel_path))
 
