@@ -30,6 +30,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "jupyter",
+    "ipykernel",
+    "pandas",
+    "matplotlib",
     "locust",
     "gevent",
     "ruff",
