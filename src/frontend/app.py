@@ -45,7 +45,10 @@ with st.sidebar:
     st.header("Standard Filters")
     name_filter = st.text_input("Company Name")
     industry_filter = st.text_input("Industry")
-    size_filter = st.selectbox("Company Size", ["", "1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"])
+    size_filter = st.selectbox(
+        "Company Size",
+        ["", "1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"],  # noqa: E501
+    )
     country_filter = st.text_input("Country")
     tag_filter = st.selectbox("Filter by Tag", [""] + st.session_state.tags)
     year_from = st.number_input("Founded From", min_value=1800, max_value=2026, value=None, placeholder="YYYY")
@@ -96,6 +99,7 @@ if intelligent_query:
                 task_id = data.get("agentic_task_id")
                 if task_id:
                     import time
+
                     with st.spinner("Waiting for agentic synthesis from Celery..."):
                         for _ in range(15):
                             time.sleep(1.5)
@@ -110,7 +114,9 @@ if intelligent_query:
                                         st.session_state.agent_answer = str(result_obj)
                                     break
                                 elif status_data.get("status") in ("FAILURE", "failed"):
-                                    st.session_state.agent_answer = "Agent synthesis failed: " + str(status_data.get("result"))
+                                    st.session_state.agent_answer = "Agent synthesis failed: " + str(
+                                        status_data.get("result")
+                                    )  # noqa: E501
                                     break
     except Exception:
         st.error("Failed to connect to Intelligent API.")
