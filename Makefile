@@ -65,5 +65,5 @@ logs:
 	docker compose logs -f
 
 # Data Management
-ingest: install
+ingest:
 	uv run python scripts/ingest_data.py
