@@ -43,6 +43,8 @@ services:
       context: .
       dockerfile: ./src/api/Dockerfile
     container_name: gateway_api
+    volumes:
+      - .:/app
     environment:
       - PROFILING_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -62,6 +64,8 @@ services:
       context: .
       dockerfile: ./src/inference/Dockerfile
     container_name: inference_service
+    volumes:
+      - .:/app
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     ports:
@@ -77,6 +81,8 @@ services:
       context: .
       dockerfile: ./src/worker/Dockerfile
     container_name: celery_worker
+    volumes:
+      - .:/app
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - REDIS_URL=redis://redis:6379/0
@@ -90,6 +96,8 @@ services:
       context: .
       dockerfile: ./src/frontend/Dockerfile
     container_name: frontend
+    volumes:
+      - .:/app
     ports:
       - "8501:8501"
     environment:
