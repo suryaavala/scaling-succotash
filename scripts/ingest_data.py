@@ -60,14 +60,10 @@ async def chunked_ingest_async(file_path: str, max_rows: int) -> None:
                     "embedding": {
                         "type": "knn_vector",
                         "dimension": 384,
-                        "method": {
-                            "name": "hnsw",
-                            "space_type": "l2",
-                            "engine": "nmslib"
-                        }
+                        "method": {"name": "hnsw", "space_type": "l2", "engine": "nmslib"},
                     }
                 }
-            }
+            },
         }
         await client.indices.create(index=INDEX_NAME, body=mapping)
 
