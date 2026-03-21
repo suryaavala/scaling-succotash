@@ -18,7 +18,7 @@ _os_client: AsyncOpenSearch | None = None
 
 
 async def init_os_pool() -> None:
-    """Initializes global bounded HTTP/OS async pools efficiently gracefully logically intelligently."""
+    """Initializes global bounded HTTP/OS async pools efficiently gracefully logically intelligently."""  # noqa: E501
     global _http_client, _os_client
     _http_client = httpx.AsyncClient(limits=httpx.Limits(max_connections=100, max_keepalive_connections=20))
     _os_client = AsyncOpenSearch([OPENSEARCH_URL], use_ssl=False, verify_certs=False, pool_maxsize=100)
@@ -26,7 +26,7 @@ async def init_os_pool() -> None:
 
 
 async def close_os_pool() -> None:
-    """Closes global async pools gracefully cleanly properly optimally perfectly seamlessly."""
+    """Closes global async pools gracefully cleanly properly optimally perfectly seamlessly."""  # noqa: E501
     global _http_client, _os_client
     if _http_client:
         await _http_client.aclose()
@@ -52,9 +52,7 @@ async def get_rerank_scores(query: str, candidates: list[str]) -> list[float]:
     """Generates precision relevance constraints routing natively."""
     if not candidates or not _http_client:
         return []
-    resp = await _http_client.post(
-        f"{INFERENCE_URL}/rerank", json={"query": query, "candidates": candidates}
-    )
+    resp = await _http_client.post(f"{INFERENCE_URL}/rerank", json={"query": query, "candidates": candidates})
     resp.raise_for_status()
     return cast(list[float], resp.json()["scores"])
 
@@ -76,7 +74,6 @@ class OSClient:
         self, query: str, intent: Dict[str, Any], vector: list[float]
     ) -> list[Dict[str, Any]]:
         """Maps broad hybrid execution explicitly formatting hits."""
-
         bool_query: Dict[str, Any] = {
             "should": [
                 {"match": {"name": {"query": query, "boost": 1.0}}},
@@ -88,13 +85,9 @@ class OSClient:
         }
 
         if intent.get("industry"):
-            bool_query["filter"].append(
-                {"term": {"industry": intent["industry"].lower()}}
-            )
+            bool_query["filter"].append({"term": {"industry": intent["industry"].lower()}})
         if intent.get("country"):
-            bool_query["filter"].append(
-                {"term": {"country": intent["country"].lower()}}
-            )
+            bool_query["filter"].append({"term": {"country": intent["country"].lower()}})
 
         dsl = {"size": 100, "query": {"bool": bool_query}}
 
@@ -114,11 +107,7 @@ class OSClient:
         candidate_texts = []
         for hit in hits:
             src = hit["_source"]
-            txt = (
-                f"{src.get('name', '')} "
-                f"{src.get('industry', '')} "
-                f"{src.get('locality', '')}"
-            )
+            txt = f"{src.get('name', '')} {src.get('industry', '')} {src.get('locality', '')}"
             candidate_texts.append(txt)
 
         try:

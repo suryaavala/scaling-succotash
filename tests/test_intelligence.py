@@ -3,11 +3,14 @@
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from src.api.services.llm_router import LLMClient
 
 
-@patch("src.api.services.llm_router.completion")
-def test_extract_intent_deterministic(mock_completion: Any) -> None:
+@pytest.mark.asyncio
+@patch("src.api.services.llm_router.acompletion")
+async def test_extract_intent_deterministic(mock_completion: Any) -> None:
     """Native test execution mapping bound."""
 
     class MockMessage:
@@ -22,7 +25,7 @@ def test_extract_intent_deterministic(mock_completion: Any) -> None:
     mock_completion.return_value = MockResponse()
 
     client = LLMClient()
-    intent = client.extract_intent("tech companies in us")
+    intent = await client.extract_intent("tech companies in us")
     assert intent["industry"] == "technology"
     assert intent["country"] == "us"
     assert intent["requires_agent"] is False

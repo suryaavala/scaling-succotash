@@ -32,9 +32,7 @@ def add_tag(company_id: str, new_tag: str) -> None:
     """Push tagging successfully accurately neatly dependably."""
     if new_tag:
         try:
-            requests.post(
-                f"{API_URL}/companies/{company_id}/tags", json={"tag": new_tag}
-            )
+            requests.post(f"{API_URL}/companies/{company_id}/tags", json={"tag": new_tag})
             fetch_tags()
         except Exception as e:
             st.error(f"Error adding tag: {e}")
@@ -50,9 +48,7 @@ with st.sidebar:
     size_filter = st.selectbox("Company Size", ["", "<1000", "1000-10000", "10001+"])
     country_filter = st.text_input("Country")
     tag_filter = st.selectbox("Filter by Tag", [""] + st.session_state.tags)
-    year_from = st.number_input(
-        "Founded From", min_value=1800, max_value=2026, value=1900
-    )
+    year_from = st.number_input("Founded From", min_value=1800, max_value=2026, value=1900)
     year_to = st.number_input("Founded To", min_value=1800, max_value=2026, value=2026)
 
     if st.button("Apply Filters"):
@@ -85,22 +81,16 @@ with st.sidebar:
 
 # --- MAIN COLUMN: Intelligent Search ---
 st.subheader("Intelligent Search")
-st.caption(
-    "E.g., 'tech companies in us' or 'startups that announced fund raising recently'"
-)
+st.caption("E.g., 'tech companies in us' or 'startups that announced fund raising recently'")
 intelligent_query = st.chat_input("Search companies...")
 
 if intelligent_query:
     try:
         with st.spinner("Analyzing intent and searching..."):
-            r = requests.post(
-                f"{API_URL}/search/intelligent", json={"query": intelligent_query}
-            )
+            r = requests.post(f"{API_URL}/search/intelligent", json={"query": intelligent_query})
             if r.status_code == 200:
                 data = r.json()
-                st.session_state.results = data.get("search_results", {}).get(
-                    "results", []
-                )
+                st.session_state.results = data.get("search_results", {}).get("results", [])
                 st.session_state.agent_answer = data.get("agentic_answer")
     except Exception:
         st.error("Failed to connect to Intelligent API.")
@@ -118,18 +108,13 @@ for company in st.session_state.results:
     ):
         st.write(f"**Domain:** {company.get('domain')}")
         st.write(f"**Location:** {company.get('locality')}, {company.get('country')}")
-        st.write(
-            f"**Founded:** {company.get('year_founded')} | "
-            f"**Size:** {company.get('size_range')}"
-        )
+        st.write(f"**Founded:** {company.get('year_founded')} | **Size:** {company.get('size_range')}")
 
         tags = company.get("tags", [])
         if tags:
             st.write("**Tags:** " + ", ".join([f"`{t}`" for t in tags]))
 
-        new_tag = st.text_input(
-            f"Add Tag for {company['name']}", key=f"tag_{company['id']}"
-        )
+        new_tag = st.text_input(f"Add Tag for {company['name']}", key=f"tag_{company['id']}")
         if st.button("Save Tag", key=f"btn_{company['id']}"):
             add_tag(company["id"], new_tag)
             st.success(f"Added tag '{new_tag}' to {company['name']}!")

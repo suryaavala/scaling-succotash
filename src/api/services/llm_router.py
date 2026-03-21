@@ -25,10 +25,22 @@ class IntentSchema(BaseModel):
 
 
 FAST_PATH_HEURISTICS: Dict[str, Dict[str, Any]] = {
-    "cloud providers supporting kubernetes": {"industry": "Software", "requires_agent": False},
-    "latest acquisitions by microsoft in ai": {"industry": "Software", "requires_agent": True, "name": "Microsoft"},
-    "healthcare startups in london": {"industry": "Healthcare", "country": "UK", "requires_agent": False},
+    "cloud providers supporting kubernetes": {
+        "industry": "Software",
+        "requires_agent": False,
+    },
+    "latest acquisitions by microsoft in ai": {
+        "industry": "Software",
+        "requires_agent": True,
+        "name": "Microsoft",
+    },
+    "healthcare startups in london": {
+        "industry": "Healthcare",
+        "country": "UK",
+        "requires_agent": False,
+    },
 }
+
 
 class LLMClient:
     """Injected Singleton evaluating LLM completion queries securely."""
@@ -45,14 +57,14 @@ class LLMClient:
 
         cached = await get_cached_intent(query)
         if cached is not None:
-            logger.info(
-                "Found intent in Redis cache. Bypassing LLM execution natively."
-            )
+            logger.info("Found intent in Redis cache. Bypassing LLM execution natively.")
             return cached
 
         import os
+
         if os.getenv("MOCK_LLM_LATENCY"):
             import asyncio
+
             await asyncio.sleep(float(os.getenv("MOCK_LLM_LATENCY", "1.0")))
             requires_agent = "recent" in query.lower() or "who" in query.lower()
             return {"industry": "Software", "requires_agent": requires_agent}

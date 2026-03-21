@@ -18,9 +18,7 @@ def search_recent_news(company_domain: str | None) -> str:
     """Invokes simulated external intelligence retrieval."""
     if not company_domain:
         return "No recent news available."
-    return (
-        f"Recent news for {company_domain}: Announced $10M Series A funding last month."
-    )
+    return f"Recent news for {company_domain}: Announced $10M Series A funding last month."
 
 
 # Celery's task decorator lacks proper type hints
@@ -38,10 +36,7 @@ def synthesize_agent_response(self: Any, task_data: Dict[str, Any]) -> Dict[str,
     for c in candidates:
         domain = c.get("website")
         news = search_recent_news(domain)
-        context += (
-            f"Company: {c.get('name')} | Industry: {c.get('industry')} | "
-            f"News: {news}\n\n"
-        )
+        context += f"Company: {c.get('name')} | Industry: {c.get('industry')} | News: {news}\n\n"
 
     prompt = (
         f"Context:\n{context}\n\n"

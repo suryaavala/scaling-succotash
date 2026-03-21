@@ -91,11 +91,7 @@ def run() -> None:
             if not company_id:
                 continue
 
-            text_to_embed = (
-                f"{row.get('name', '')} "
-                f"{row.get('industry', '')} "
-                f"{row.get('locality', '')}"
-            )
+            text_to_embed = f"{row.get('name', '')} {row.get('industry', '')} {row.get('locality', '')}"
             try:
                 vector = get_embedding(text_to_embed)
             except Exception as e:

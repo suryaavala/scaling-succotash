@@ -14,11 +14,10 @@ logger = logging.getLogger("api")
 
 
 @router.post("/companies/{company_id}/tags")
-async def add_tag(
-    company_id: str, request: TagRequest, os_client: OSClient = Depends(get_os_client)
-) -> Dict[str, str]:
+async def add_tag(company_id: str, request: TagRequest, os_client: OSClient = Depends(get_os_client)) -> Dict[str, str]:
     """Adds a dynamic tag mapped strictly against OpenSearch bounds."""
     client = os_client.client
+    assert client is not None, "OpenSearch client is not initialized"
     tag = request.tag.strip()
 
     script = {
@@ -52,6 +51,7 @@ async def get_all_tags(
 ) -> list[str]:
     """Fetches mapped unique tags solidly natively from indices."""
     client = os_client.client
+    assert client is not None, "OpenSearch client is not initialized"
 
     agg_query = {
         "size": 0,
