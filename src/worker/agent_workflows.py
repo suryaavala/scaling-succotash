@@ -22,7 +22,7 @@ def search_recent_news(company_domain: str | None) -> str:
 
 
 # Celery's task decorator lacks proper type hints
-@celery_app.task(bind=True, max_retries=3)  # type: ignore[untyped-decorator]
+@celery_app.task(bind=True, max_retries=3, name="tasks.agent_workflows.synthesize_agent_response")  # type: ignore[untyped-decorator]
 def synthesize_agent_response(self: Any, task_data: Dict[str, Any]) -> Dict[str, Any]:
     """Coordinates nested search synthesis natively evaluating models."""
     # Extract query and candidates from task_data

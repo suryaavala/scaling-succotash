@@ -36,7 +36,7 @@ async def add_tag(company_id: str, request: TagRequest, os_client: OSClient = De
     }
 
     try:
-        client.update(index=INDEX_NAME, id=company_id, body=script, refresh=True)
+        await client.update(index=INDEX_NAME, id=company_id, body=script, refresh=True)
         return {"status": "success", "tag": tag, "company_id": company_id}
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -59,7 +59,7 @@ async def get_all_tags(
     }
 
     try:
-        response = client.search(index=INDEX_NAME, body=agg_query)
+        response = await client.search(index=INDEX_NAME, body=agg_query)
         if response.get("hits", {}).get("total", {}).get("value", 0) > 0:
             aggs = response.get("aggregations", {})
             tags_agg = aggs.get("unique_tags", {})
