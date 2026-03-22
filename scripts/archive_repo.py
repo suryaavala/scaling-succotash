@@ -22,6 +22,7 @@ EXCLUDE_DIRS = {
     ".pytest_cache",
     "archive",
     "md_export",
+    "data",
     ".gemini",  # Prevent agent bounds collisions natively
 }
 
