@@ -4700,7 +4700,6 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "litellm" },
-    { name = "numpy" },
     { name = "opensearch-py" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp" },
@@ -4711,12 +4710,17 @@ dependencies = [
     { name = "pyinstrument" },
     { name = "python-dotenv" },
     { name = "redis" },
-    { name = "sentence-transformers" },
     { name = "streamlit" },
-    { name = "torch" },
-    { name = "transformers" },
     { name = "uvicorn" },
     { name = "watchdog" },
+]
+
+[package.optional-dependencies]
+ml = [
+    { name = "numpy" },
+    { name = "sentence-transformers" },
+    { name = "torch" },
+    { name = "transformers" },
 ]
 
 [package.dev-dependencies]
@@ -4747,7 +4751,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.104.1" },
     { name = "httpx", specifier = ">=0.25.1" },
     { name = "litellm", specifier = ">=1.0.0" },
-    { name = "numpy", specifier = "<2.0.0" },
+    { name = "numpy", marker = "extra == 'ml'", specifier = "<2.0.0" },
     { name = "opensearch-py", specifier = ">=2.3.1" },
     { name = "opentelemetry-api", specifier = ">=1.40.0" },
     { name = "opentelemetry-exporter-otlp", specifier = ">=1.40.0" },
@@ -4758,13 +4762,14 @@ requires-dist = [
     { name = "pyinstrument", specifier = ">=4.7.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "redis", specifier = ">=5.0.1" },
-    { name = "sentence-transformers", specifier = ">=2.2.2" },
+    { name = "sentence-transformers", marker = "extra == 'ml'", specifier = ">=2.2.2" },
     { name = "streamlit", specifier = ">=1.28.0" },
-    { name = "torch", specifier = "<=2.2.2" },
-    { name = "transformers", specifier = "<4.39" },
+    { name = "torch", marker = "extra == 'ml'", specifier = "<=2.2.2" },
+    { name = "transformers", marker = "extra == 'ml'", specifier = "<4.39" },
     { name = "uvicorn", specifier = ">=0.23.2" },
     { name = "watchdog", specifier = ">=6.0.0" },
 ]
+provides-extras = ["ml"]
 
 [package.metadata.requires-dev]
 dev = [
