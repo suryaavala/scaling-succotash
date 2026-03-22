@@ -27,6 +27,10 @@ typecheck:
 test:
 	uv run pytest -v
 
+# Testing E2e
+test-e2e:
+	uv run pytest -m e2e -v
+
 # Service Execution
 run-gateway:
 	uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
