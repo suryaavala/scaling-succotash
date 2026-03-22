@@ -1,4 +1,6 @@
-# Enterprise B2B Company Search & Intelligence API (V4 Architecture)
+# Enterprise B2B Company Search & Intelligence API (V4 Architecture) 
+
+[![CI/CD Pipeline](https://github.com/suryaavala/scaling-succotash/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/suryaavala/scaling-succotash/actions/workflows/ci.yml)
 
 ## Overview
 This repository contains a production-grade, distributed microservices architecture for B2B company search. The V4 architecture strictly isolates CPU-heavy ML inference and asynchronous LLM agent workflows from the I/O-bound Web API gateway, ensuring high availability and horizontal scalability. It natively enforces SOLID principles via Dependency Injection and Strategy patterns, while leveraging `uv` for next-generation Python tooling and a standardized `src/` directory layout for robust maintainability.

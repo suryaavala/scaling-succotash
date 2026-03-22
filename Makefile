@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e test-all ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
+.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
 
 # Default target
 help:
@@ -24,11 +24,10 @@ help:
 	@echo "    test            Run the full test suite (unit + e2e) with verbose output"
 	@echo "    test-fast       Run only unit tests (excludes e2e), enforces 85% coverage"
 	@echo "    test-e2e        Run only end-to-end tests (requires running Docker services)"
-	@echo "    test-all        Run every test (alias for test)"
 	@echo ""
 	@echo "  \033[1;36mCI Pipelines\033[0m"
 	@echo "    ci              Fast local CI: lint → typecheck → test-fast"
-	@echo "    ci-all          Full local CI: lint → format → typecheck → test-all"
+	@echo "    ci-all          Full local CI: lint → format → typecheck → test"
 	@echo "    all             Full pipeline: install → format → lint → typecheck → test"
 	@echo ""
 	@echo "  \033[1;36mServices (Local)\033[0m"
@@ -88,7 +87,7 @@ typecheck:
 ci: lint typecheck test-fast
 
 # Full CI pipeline
-ci-all: lint format typecheck test-all
+ci-all: lint format typecheck test
 
 # Testing
 test:
@@ -99,9 +98,6 @@ test-fast:
 
 test-e2e: up
 	uv run pytest -m e2e -v --no-cov
-
-test-all:
-	uv run pytest -v
 
 # Pre-commit Hooks
 install-hooks:
