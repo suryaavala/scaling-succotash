@@ -34,17 +34,30 @@ project_root/
 └── tests/
 ```
 
-## Setup & Running Locally (Docker Compose)
+## Setup & Running Locally
 
-1. **Environment Setup**
-   Copy the example environment into place:
+### Option 1: Kubernetes (V10 Recommended)
+We use `kind` (Kubernetes in Docker) for production-parity local orchestration.
+**Prerequisites:** Install `kind`, `kubectl`, and `k9s`.
+
+1. **Environment Setup:** `cp .env.example .env` and add `GEMINI_API_KEY`.
+2. **Provision Cluster:**
    ```bash
-   cp .env.example .env
+   make cluster-up
    ```
-   Add your valid `GEMINI_API_KEY` to `.env`.
+3. **Build & Deploy Workloads:**
+   ```bash
+   make docker-build-local
+   make deploy
+   ```
+4. **Access the API:**
+   ```bash
+   make port-forward
+   ```
 
-2. **Orchestrate via Make**
-   Deploy the entire application automatically:
+### Option 2: Docker Compose (Legacy)
+1. **Environment Setup:** `cp .env.example .env` and add `GEMINI_API_KEY`.
+2. **Deploy:**
    ```bash
    make up
    ```

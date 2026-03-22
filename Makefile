@@ -36,11 +36,20 @@ help:
 	@echo "    run-worker      Start the Celery worker for agentic search workflows"
 	@echo "    run-frontend    Start the Streamlit frontend UI"
 	@echo ""
-	@echo "  \033[1;36mDocker\033[0m"
-	@echo "    up              Build and start all Docker Compose services (detached),  Wait for services to be up (300s timeout)"
+	@echo "  \033[1;36mKubernetes (Local kind)\033[0m"
+	@echo "    cluster-up      Provision local kind cluster and NGINX Ingress"
+	@echo "    cluster-down    Destroy local kind cluster"
+	@echo "    docker-build-local Build images and load into kind cluster"
+	@echo "    deploy          Deploy Kubernetes manifests via Kustomize"
+	@echo "    port-forward    Forward localhost:8000 to Gateway API"
+	@echo "    logs            Tail K8s logs of the Gateway API pod"
+	@echo "    k9s             Open k9s terminal UI for local cluster"
+	@echo ""
+	@echo "  \033[1;36mDocker Compose (Legacy)\033[0m"
+	@echo "    up              Build and start all Docker Compose services"
 	@echo "    down            Stop and remove all Docker Compose services"
 	@echo "    restart         Restart all Docker Compose services"
-	@echo "    logs            Tail logs from all Docker Compose services"
+	@echo "    logs-compose    Tail logs from all Docker Compose services"
 	@echo ""
 	@echo "  \033[1;36mData Management\033[0m"
 	@echo "    download-data   Download the 7M-row Kaggle company dataset"
@@ -128,7 +137,43 @@ clean:
 	rm -rf .coverage
 	find . -type d -name "__pycache__" -exec rm -r {} +
 
-# Docker Operations
+# Kubernetes Operations (kind)
+cluster-up:
+	@echo "Provisioning local kind cluster..."
+	kind create cluster --config k8s/kind-config.yaml
+	@echo "Installing NGINX Ingress controller..."
+	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+	kubectl wait --namespace ingress-nginx \
+	  --for=condition=ready pod \
+	  --selector=app.kubernetes.io/component=controller \
+	  --timeout=90s
+
+cluster-down:
+	kind delete cluster
+
+docker-build-local:
+	@echo "Building local Docker images..."
+	docker build -t scaling-succotash-gateway_api:latest -f src/api/Dockerfile .
+	docker build -t scaling-succotash-inference_service:latest -f src/inference/Dockerfile .
+	docker build -t scaling-succotash-celery_worker:latest -f src/worker/Dockerfile .
+	@echo "Loading images into kind cluster..."
+	kind load docker-image scaling-succotash-gateway_api:latest
+	kind load docker-image scaling-succotash-inference_service:latest
+	kind load docker-image scaling-succotash-celery_worker:latest
+
+deploy:
+	kubectl apply -k k8s/base
+
+port-forward:
+	kubectl port-forward svc/gateway-api 8000:8000
+
+logs:
+	kubectl logs -l app=gateway-api -f
+
+k9s:
+	k9s
+
+# Docker Compose Operations (Legacy)
 up:
 	docker compose up --build -d --wait --wait-timeout 360
 
@@ -138,7 +183,7 @@ down:
 restart:
 	docker compose restart
 
-logs:
+logs-compose:
 	docker compose logs -f
 
 # Data Management

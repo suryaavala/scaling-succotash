@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+        - name: worker
+          image: scaling-succotash-celery_worker:latest
+          imagePullPolicy: Never
+          env:
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
+            - name: OPENSEARCH_URL
+              value: "http://opensearch:9200"
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: GEMINI_API_KEY
+                  optional: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "celery -A src.worker.agent_workflows inspect ping -d celery@$HOSTNAME"
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "celery -A src.worker.agent_workflows inspect ping -d celery@$HOSTNAME"
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 3
