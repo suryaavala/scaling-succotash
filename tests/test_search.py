@@ -22,6 +22,6 @@ def test_build_search_dsl_filters() -> None:
     assert any("match" in m and "name" in m["match"] for m in musts)
 
     filters = bool_query["filter"]
-    assert any("term" in f and "industry" in f["term"] for f in filters)
-    assert any("term" in f and "country" in f["term"] for f in filters)
+    assert any("term" in f and "industry.keyword" in f["term"] for f in filters)
+    assert any("term" in f and "country.keyword" in f["term"] for f in filters)
     assert any("range" in f and "year_founded" in f["range"] for f in filters)

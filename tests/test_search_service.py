@@ -18,7 +18,7 @@ def test_build_search_dsl_with_size_range() -> None:
     req = SearchRequest(size_range="51-200")
     dsl = build_search_dsl(req)
     filters = dsl["query"]["bool"]["filter"]
-    assert any("term" in f and "size_range" in f["term"] for f in filters)
+    assert any("term" in f and "size_range.keyword" in f["term"] for f in filters)
 
 
 def test_build_search_dsl_pagination() -> None:
