@@ -52,6 +52,7 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=85"
 markers = [
     "e2e: marks tests as end-to-end requiring full infrastructure"
 ]
