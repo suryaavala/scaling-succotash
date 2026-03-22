@@ -81,7 +81,7 @@ jobs:
   #       run: make install-all
   #
   #     - name: Start services and wait for readiness
-  #       run: make wait
+  #       run: make up
   #       env:
   #         DOCKER_BUILDKIT: "1"
   #         COMPOSE_DOCKER_CLI_BUILD: "1"
