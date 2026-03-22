@@ -91,3 +91,4 @@ md_export/
 .tmp/
 archive/
 .venv/
+data/

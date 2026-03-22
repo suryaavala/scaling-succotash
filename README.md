@@ -47,13 +47,31 @@ project_root/
    make up
    ```
 
-3. **Ingest Data**
-   Stream 7 million rows of `.csv` data effectively via the batching container:
+3. **Automated Dataset Acquisition**
+   Download the official Kaggle 7M row dataset (`~/.kaggle/kaggle.json` required):
    ```bash
-   make ingest
+   make download-data
+   ```
+   **Fallback:** Generate a 100k-row synthetic mock dataset if Kaggle is unavailable:
+   ```bash
+   make generate-data
    ```
 
-4. **Verify Systems**
+4. **Containerized Ingestion**
+   Execute the isolated Docker ingestion profiles to stream data into the cluster safely:
+   ```bash
+   make ingest-sample  # Streams 100k generated mock rows
+   # OR
+   make ingest-full    # Streams the full 7M official Kaggle rows
+   ```
+
+5. **Testing & Observability**
+   Execute the native E2E test suite against the live cluster to verify Gateway/Inference/Celery bindings:
+   ```bash
+   uv run pytest -m e2e -v
+   ```
+
+6. **Verify Systems**
    - Streamlit Dashboard: `http://localhost:8501`
    - Gateway OpenAPI Docs: `http://localhost:8000/docs`
    - Inference OpenAPI Docs: `http://localhost:8001/docs`

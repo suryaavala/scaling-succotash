@@ -42,11 +42,17 @@ dev = [
     "pytest-asyncio",
     "pytest-cov",
     "types-redis",
-    "types-requests"
+    "types-requests",
+    "kaggle>=2.0.0",
+    "faker>=40.11.0",
+    "httpx>=0.28.1",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+markers = [
+    "e2e: marks tests as end-to-end requiring full infrastructure"
+]
 
 [tool.ruff]
 line-length = 120

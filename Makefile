@@ -27,6 +27,14 @@ typecheck:
 test:
 	uv run pytest -v
 
+# Testing fast
+test-fast:
+	uv run pytest -m "not e2e" -v
+
+# Testing E2e
+test-e2e:
+	uv run pytest -m e2e -v
+
 # Service Execution
 run-gateway:
 	uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
@@ -65,5 +73,17 @@ logs:
 	docker compose logs -f
 
 # Data Management
+download-data:
+	uv run python scripts/download_dataset.py
+
+generate-data:
+	uv run python scripts/generate_mock_data.py --rows 100000
+
+ingest-sample:
+	DATA_FILE=mock_companies.csv LIMIT=100000 docker compose run --rm data_ingester
+
+ingest-full:
+	DATA_FILE=companies.csv LIMIT=7000000 docker compose run --rm data_ingester
+
 ingest:
 	uv run python scripts/ingest_data.py

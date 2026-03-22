@@ -117,3 +117,22 @@ services:
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
     depends_on:
       - opensearch
+
+  data_ingester:
+    build:
+      context: .
+      dockerfile: ./src/worker/Dockerfile
+    container_name: data_ingester
+    profiles: ["ingest"]
+    entrypoint: ["uv", "run", "python", "scripts/ingest_data.py"]
+    command: >
+      --file data/${DATA_FILE:-companies.csv}
+      --limit ${LIMIT:-7000000}
+    volumes:
+      - ./data:/app/data
+      - ./scripts:/app/scripts
+      - ./src:/app/src
+    environment:
+      - OPENSEARCH_URL=http://opensearch:9200
+    depends_on:
+      - opensearch
