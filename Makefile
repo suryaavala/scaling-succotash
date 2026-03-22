@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: help setup install install-all format lint typecheck test test-fast test-e2e test-all ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
+.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e test-all ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo "    install         Sync dependencies into the existing virtual environment"
 	@echo "    install-all     Sync all dependencies into the existing virtual environment"
 	@echo "    install-hooks   Install pre-commit hooks (ruff, mypy, whitespace fixers)"
+	@echo "	   archive		   Archive repo for notebooklm"
 	@echo ""
 	@echo "  \033[1;36mCode Quality\033[0m"
 	@echo "    format          Auto-fix lint issues and reformat code with ruff"
@@ -67,6 +68,9 @@ install-all:
 	uv sync --all-extras --dev
 
 all: install format lint typecheck test
+
+archive:
+	uv run python3 scripts/archive_repo.py
 
 # Code Quality & Formatting
 format:
