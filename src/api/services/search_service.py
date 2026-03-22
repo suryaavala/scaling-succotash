@@ -1,16 +1,15 @@
-"""Module docstring mapped natively."""
+"""Search service for building OpenSearch DSL queries."""
 
 import logging
 from typing import Any, Dict, List
 
 from src.api.models.schemas import SearchRequest
-from src.api.services.opensearch_client import INDEX_NAME, OSClient
 
 logger = logging.getLogger("search_service")
 
 
 def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
-    """Translates SearchRequest into OpenSearch DSL with Tag Support."""
+    """Translate a SearchRequest into an OpenSearch DSL query."""
     must_clauses: List[Dict[str, Any]] = []
     filter_clauses: List[Dict[str, Any]] = []
 
@@ -58,21 +57,3 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
         "size": request.size,
     }
     return dsl
-
-
-async def execute_search(request: SearchRequest, client: OSClient) -> List[Dict[str, Any]]:
-    """Runs compiled logic returning candidate arrays natively."""
-    dsl = build_search_dsl(request)
-
-    try:
-        resp = await client.raw_search(index=INDEX_NAME, body=dsl)
-        hits = list(resp.get("hits", {}).get("hits", []))
-        results = []
-        for hit in hits:
-            src = hit["_source"]
-            src["id"] = hit["_id"]
-            results.append(src)
-        return results
-    except Exception as e:
-        logger.error(f"Deterministic search failed: {e}")
-        return []

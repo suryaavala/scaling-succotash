@@ -1,4 +1,4 @@
-"""LLM Client Dependency Injection wrapper mapping routing logic."""
+"""LLM Client for intent extraction using centralized settings."""
 
 import json
 import logging
@@ -7,13 +7,14 @@ from typing import Any, Dict, Optional, cast
 from litellm import acompletion
 from pydantic import BaseModel
 
+from src.api.core.config import get_settings
 from src.api.core.redis_cache import get_cached_intent, set_cached_intent
 
 logger = logging.getLogger("llm_router")
 
 
 class IntentSchema(BaseModel):
-    """Schema binding intelligence routing layouts correctly."""
+    """Schema for structured LLM intent extraction."""
 
     name: Optional[str] = None
     industry: Optional[str] = None
@@ -43,35 +44,34 @@ FAST_PATH_HEURISTICS: Dict[str, Dict[str, Any]] = {
 
 
 class LLMClient:
-    """Injected Singleton evaluating LLM completion queries securely."""
+    """Client for LLM-based intent extraction with caching."""
 
     async def extract_intent(self, query: str) -> tuple[Dict[str, Any], bool]:
-        """Resolves JSON intelligence parameters securely."""
+        """Extract structured intent from a natural language query."""
         query_lower = query.lower().strip()
+        settings = get_settings()
 
         # Heuristic fast-path bypass
         for path, intent in FAST_PATH_HEURISTICS.items():
             if path in query_lower:
-                logger.info("Fast-Path Heuristic triggered. Bypassing LLM execution natively.")
+                logger.info("Fast-path heuristic triggered, bypassing LLM.")
                 return intent, True
 
         cached = await get_cached_intent(query)
         if cached is not None:
-            logger.info("Found intent in Redis cache. Bypassing LLM execution natively.")
+            logger.info("Found intent in Redis cache, bypassing LLM.")
             return cached, True
 
-        import os
-
-        if os.getenv("MOCK_LLM_LATENCY"):
+        if settings.mock_llm_latency is not None:
             import asyncio
 
-            await asyncio.sleep(float(os.getenv("MOCK_LLM_LATENCY", "1.0")))
+            await asyncio.sleep(settings.mock_llm_latency)
             requires_agent = "recent" in query.lower() or "who" in query.lower()
             return {"industry": "Software", "requires_agent": requires_agent}, False
 
         try:
             response = await acompletion(
-                model="gemini/gemini-3.1-flash-lite-preview",
+                model=settings.llm_model,
                 messages=[
                     {
                         "role": "system",
@@ -99,5 +99,5 @@ class LLMClient:
 
 
 def get_llm_client() -> LLMClient:
-    """Dependency Injection provider for LLM integrations."""
+    """FastAPI Depends provider for LLM client."""
     return LLMClient()
