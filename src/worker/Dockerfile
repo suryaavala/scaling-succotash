@@ -1,12 +1,45 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# ── Stage 1: Builder ──────────────────────────────────────────────
+FROM python:3.11-slim-bookworm AS builder
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
 
+# Install dependencies (cached separately from source code)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
 
-COPY src /app/src
+# Copy source and finalize install
+COPY src/ /app/src/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
-CMD ["uv", "run", "celery", "-A", "src.worker.agent_workflows", "worker", "--loglevel=info"]
+
+# ── Stage 2: Runtime ─────────────────────────────────────────────
+FROM python:3.11-slim-bookworm AS runtime
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends dumb-init && \
+    rm -rf /var/lib/apt/lists/*
+
+# Non-root user
+RUN groupadd --system appuser && \
+    useradd --system --gid appuser --create-home appuser
+
+WORKDIR /app
+
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/src /app/src
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+USER appuser
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["celery", "-A", "src.worker.agent_workflows", "worker", "--loglevel=info"]

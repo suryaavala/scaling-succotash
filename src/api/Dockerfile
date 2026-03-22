@@ -1,17 +1,48 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1
 
-# Install uv securely from the official image cleanly natively
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# ── Stage 1: Builder ──────────────────────────────────────────────
+FROM python:3.11-slim-bookworm AS builder
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
 
-# Copy dependency configuration safely explicitly dependably nicely cleanly clearly intuitively smoothly organically explicit dependably securely correctly natively
+# Install dependencies (cached separately from source code)
 COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
 
-# Sync dependencies organically reliably solidly efficiently smoothly safely elegantly smartly explicit cleverly smartly securely fluidly correctly explicitly safely correctly explicit dependably
-RUN uv sync --frozen --no-install-project --no-dev
+# Copy source and finalize install
+COPY src/ /app/src/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
-# Copy entire context natively mapping gracefully smoothly cleanly natively optimally seamlessly flexibly accurately automatically fluently dependably correctly
-COPY src /app/src
 
-CMD ["uv", "run", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# ── Stage 2: Runtime ─────────────────────────────────────────────
+FROM python:3.11-slim-bookworm AS runtime
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends dumb-init curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Non-root user
+RUN groupadd --system appuser && \
+    useradd --system --gid appuser --create-home appuser
+
+WORKDIR /app
+
+# Copy venv and source — use --chown to avoid separate chown step
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/src /app/src
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+USER appuser
+
+EXPOSE 8000
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
