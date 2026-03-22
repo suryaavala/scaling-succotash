@@ -1,4 +1,4 @@
-"""Search routing logic natively mapping deterministic layouts."""
+"""Search routing logic for deterministic and intelligent search endpoints."""
 
 import asyncio
 import logging
@@ -7,6 +7,7 @@ from typing import Dict
 from fastapi import APIRouter, Depends, Response
 
 from src.api.core.redis_cache import get_cached_search, set_cached_search
+from src.api.domain.interfaces import CompanyRepository
 from src.api.models.schemas import (
     IntelligentSearchRequest,
     IntelligentSearchResponse,
@@ -14,12 +15,12 @@ from src.api.models.schemas import (
     SearchResponse,
 )
 from src.api.services.llm_router import LLMClient, get_llm_client
-from src.api.services.opensearch_client import OSClient, get_embedding, get_os_client
-from src.api.services.search_service import execute_search
+from src.api.services.opensearch_client import get_company_repository, get_embedding
 from src.api.services.search_strategies import (
     AgenticSearchStrategy,
-    IntelligentSearchStrategy,
+    DeterministicSearchStrategy,
     SearchContext,
+    SearchStrategy,
     SemanticSearchStrategy,
 )
 
@@ -28,10 +29,13 @@ logger = logging.getLogger("search")
 
 
 @router.post("", response_model=SearchResponse)
-async def deterministic_search(request: SearchRequest, os_client: OSClient = Depends(get_os_client)) -> SearchResponse:
-    """Routes deterministic schema directly."""
-    results = await execute_search(request, os_client)
-    return SearchResponse(results=results)
+async def deterministic_search(
+    request: SearchRequest,
+    repo: CompanyRepository = Depends(get_company_repository),
+) -> SearchResponse:
+    """Execute a structured filter-based search."""
+    strategy = DeterministicSearchStrategy()
+    return await strategy.execute(request, repo)
 
 
 _flight_cache: Dict[str, asyncio.Event] = {}
@@ -41,10 +45,10 @@ _flight_cache: Dict[str, asyncio.Event] = {}
 async def intelligent_search(
     request: IntelligentSearchRequest,
     response: Response,
-    os_client: OSClient = Depends(get_os_client),
+    repo: CompanyRepository = Depends(get_company_repository),
     llm_client: LLMClient = Depends(get_llm_client),
 ) -> IntelligentSearchResponse:
-    """Routes intelligent queries via defined Strategies."""
+    """Route intelligent queries via LLM intent extraction and Strategy selection."""
     query = request.query
     if query in _flight_cache:
         await _flight_cache[query].wait()
@@ -64,9 +68,9 @@ async def intelligent_search(
         if is_cached:
             response.headers["X-Cache-Hit"] = "true"
 
-        candidates = await os_client.two_stage_retrieval(query, intent, vector)
+        candidates = await repo.two_stage_retrieval(query, intent, vector)
 
-        strategy: IntelligentSearchStrategy
+        strategy: SearchStrategy
         if intent.get("requires_agent"):
             strategy = AgenticSearchStrategy()
         else:

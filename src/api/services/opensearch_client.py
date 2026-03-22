@@ -1,32 +1,31 @@
-"""DI OpenSearch logic mapping hybrid retrieval architectures."""
+"""OpenSearch implementation of the CompanyRepository interface."""
 
 import logging
-import os
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, cast
 
 import httpx
 from opensearchpy import AsyncOpenSearch
 
-logger = logging.getLogger("opensearch")
+from src.api.core.config import Settings, get_settings
+from src.api.domain.interfaces import CompanyRepository
 
-OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
-INFERENCE_URL = os.getenv("INFERENCE_URL", "http://localhost:8001")
-INDEX_NAME = "companies"
+logger = logging.getLogger("opensearch")
 
 _http_client: httpx.AsyncClient | None = None
 _os_client: AsyncOpenSearch | None = None
 
 
 async def init_os_pool() -> None:
-    """Initializes global bounded HTTP/OS async pools efficiently gracefully logically intelligently."""  # noqa: E501
+    """Initialize global bounded HTTP/OS async connection pools."""
     global _http_client, _os_client
+    settings = get_settings()
     _http_client = httpx.AsyncClient(limits=httpx.Limits(max_connections=100, max_keepalive_connections=20))
-    _os_client = AsyncOpenSearch([OPENSEARCH_URL], use_ssl=False, verify_certs=False, pool_maxsize=100)
-    logger.info("OpenSearch Async connection pool initialized.")
+    _os_client = AsyncOpenSearch([settings.opensearch_url], use_ssl=False, verify_certs=False, pool_maxsize=100)
+    logger.info("OpenSearch async connection pool initialized.")
 
 
 async def close_os_pool() -> None:
-    """Closes global async pools gracefully cleanly properly optimally perfectly seamlessly."""  # noqa: E501
+    """Close global async pools gracefully."""
     global _http_client, _os_client
     if _http_client:
         await _http_client.aclose()
@@ -37,11 +36,12 @@ async def close_os_pool() -> None:
 
 
 async def get_embedding(text: str) -> list[float]:
-    """Generates embedding representations explicitly connecting models."""
+    """Generate embedding via the inference service."""
+    settings = get_settings()
     if not _http_client:
         return [0.0] * 384
     try:
-        resp = await _http_client.post(f"{INFERENCE_URL}/embed", json={"text": text})
+        resp = await _http_client.post(f"{settings.inference_url}/embed", json={"text": text})
         resp.raise_for_status()
         return cast(list[float], resp.json()["vector"])
     except Exception:
@@ -49,31 +49,48 @@ async def get_embedding(text: str) -> list[float]:
 
 
 async def get_rerank_scores(query: str, candidates: list[str]) -> list[float]:
-    """Generates precision relevance constraints routing natively."""
+    """Generate reranking scores via the inference service."""
+    settings = get_settings()
     if not candidates or not _http_client:
         return []
-    resp = await _http_client.post(f"{INFERENCE_URL}/rerank", json={"query": query, "documents": candidates})
+    resp = await _http_client.post(
+        f"{settings.inference_url}/rerank",
+        json={"query": query, "documents": candidates},
+    )
     resp.raise_for_status()
     return cast(list[float], resp.json()["scores"])
 
 
-class OSClient:
-    """Dependency Injection provider isolating persistence capabilities."""
+class OpenSearchCompanyRepository(CompanyRepository):
+    """Concrete CompanyRepository backed by OpenSearch."""
 
-    def __init__(self) -> None:
-        """Initializes direct underlying mapping domains securely."""
+    def __init__(self, settings: Settings | None = None) -> None:
+        """Initialize with the global OpenSearch client."""
+        self._settings = settings or get_settings()
         self.client = _os_client
+        self._index = self._settings.opensearch_index
 
-    async def raw_search(self, index: str, body: Dict[str, Any]) -> Dict[str, Any]:
-        """Provides direct driver access mapped safely."""
+    async def search(self, query_dsl: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Execute a raw DSL search and return source documents with IDs."""
         if not self.client:
-            return {}
-        return cast(Dict[str, Any], await self.client.search(index=index, body=body))
+            return []
+        try:
+            resp = await self.client.search(index=self._index, body=query_dsl)
+            hits = list(resp.get("hits", {}).get("hits", []))
+            results = []
+            for hit in hits:
+                src = hit["_source"]
+                src["id"] = hit["_id"]
+                results.append(src)
+            return results
+        except Exception as e:
+            logger.error(f"Deterministic search failed: {e}")
+            return []
 
     async def two_stage_retrieval(
         self, query: str, intent: Dict[str, Any], vector: list[float]
-    ) -> list[Dict[str, Any]]:
-        """Maps broad hybrid execution explicitly formatting hits."""
+    ) -> List[Dict[str, Any]]:
+        """Hybrid kNN + text retrieval with reranking."""
         bool_query: Dict[str, Any] = {
             "should": [
                 {"match": {"name": {"query": query, "boost": 1.0}}},
@@ -96,7 +113,7 @@ class OSClient:
             return []
 
         try:
-            resp = await self.client.search(index=INDEX_NAME, body=dsl)
+            resp = await self.client.search(index=self._index, body=dsl)
             hits = list(resp.get("hits", {}).get("hits", []))
         except Exception as e:
             logger.error(f"Search failed: {e}")
@@ -128,7 +145,51 @@ class OSClient:
 
         return results
 
+    async def add_tag(self, company_id: str, tag: str) -> Dict[str, str]:
+        """Add a tag to a company document via painless script."""
+        assert self.client is not None, "OpenSearch client is not initialized"
+        script = {
+            "script": {
+                "source": """
+                if (ctx._source.tags == null) {
+                    ctx._source.tags = new ArrayList();
+                }
+                if (!ctx._source.tags.contains(params.tag)) {
+                    ctx._source.tags.add(params.tag);
+                }
+                """,
+                "lang": "painless",
+                "params": {"tag": tag},
+            }
+        }
+        await self.client.update(index=self._index, id=company_id, body=script, refresh=True)
+        return {"status": "success", "tag": tag, "company_id": company_id}
 
-def get_os_client() -> OSClient:
-    """FastAPI Depends binding native resolutions logically."""
-    return OSClient()
+    async def get_all_tags(self) -> List[str]:
+        """Retrieve all unique tags across the index."""
+        assert self.client is not None, "OpenSearch client is not initialized"
+        agg_query = {
+            "size": 0,
+            "aggs": {"unique_tags": {"terms": {"field": "tags", "size": 1000}}},
+        }
+        response = await self.client.search(index=self._index, body=agg_query)
+        if response.get("hits", {}).get("total", {}).get("value", 0) > 0:
+            aggs = response.get("aggregations", {})
+            tags_agg = aggs.get("unique_tags", {})
+            return [bucket["key"] for bucket in tags_agg.get("buckets", [])]
+        return []
+
+
+# Legacy aliases for backward compatibility
+OSClient = OpenSearchCompanyRepository
+INDEX_NAME = "companies"
+
+
+def get_os_client() -> OpenSearchCompanyRepository:
+    """FastAPI Depends provider for the CompanyRepository."""
+    return OpenSearchCompanyRepository()
+
+
+def get_company_repository() -> CompanyRepository:
+    """FastAPI Depends provider returning the abstract interface."""
+    return OpenSearchCompanyRepository()

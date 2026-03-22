@@ -31,6 +31,12 @@ app = FastAPI(title="Inference Service", lifespan=lifespan)
 setup_telemetry(app, "inference_service")
 
 
+@app.get("/health")
+async def health() -> Dict[str, str]:
+    """Health check endpoint for container orchestration."""
+    return {"status": "ok"}
+
+
 class EmbedRequest(BaseModel):
     """Schema for embedding tasks."""
 

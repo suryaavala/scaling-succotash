@@ -8,8 +8,8 @@ dependencies = [
     "fastapi>=0.104.1",
     "uvicorn>=0.23.2",
     "opensearch-py>=2.3.1",
-    "sentence-transformers>=2.2.2",
     "pydantic>=2.4.2",
+    "pydantic-settings>=2.13.1",
     "litellm>=1.0.0",
     "polars>=0.19.12",
     "celery>=5.3.4",
@@ -17,15 +17,20 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "httpx>=0.25.1",
     "watchdog>=6.0.0",
-    "numpy<2.0.0",
-    "transformers<4.39",
-    "torch<=2.2.2",
     "opentelemetry-api>=1.40.0",
     "opentelemetry-sdk>=1.40.0",
     "opentelemetry-exporter-otlp>=1.40.0",
     "opentelemetry-instrumentation-fastapi>=0.61b0",
     "pyinstrument>=4.7.0",
     "streamlit>=1.28.0",
+]
+
+[project.optional-dependencies]
+ml = [
+    "sentence-transformers>=2.2.2",
+    "numpy<2.0.0",
+    "transformers<4.39",
+    "torch<=2.2.2",
 ]
 
 [dependency-groups]
@@ -46,10 +51,12 @@ dev = [
     "kaggle>=2.0.0",
     "faker>=40.11.0",
     "httpx>=0.28.1",
+    "pre-commit>=4.5.1",
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["."]
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=85"
 markers = [
     "e2e: marks tests as end-to-end requiring full infrastructure"
 ]
@@ -57,6 +64,7 @@ markers = [
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+exclude = ["tests/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D"]
@@ -71,3 +79,4 @@ convention = "google"
 strict = true
 ignore_missing_imports = true
 explicit_package_bases = true
+exclude = ["tests/"]

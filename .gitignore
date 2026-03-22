@@ -92,3 +92,5 @@ md_export/
 archive/
 .venv/
 data/
+pr_description/
+.coverage
