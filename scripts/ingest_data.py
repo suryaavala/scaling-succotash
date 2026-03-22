@@ -40,16 +40,33 @@ async def restore_index_settings(client: AsyncOpenSearch) -> None:
 
 
 async def process_batch_async(
-    client: AsyncOpenSearch, actions: list[dict[str, Any]], semaphore: asyncio.Semaphore
+    client: AsyncOpenSearch, actions: list[dict[str, Any]], batch_num: int, max_retries: int = 3
 ) -> None:
-    """Pushes batched payloads dynamically efficiently smartly natively smoothly correctly exactly easily properly confidently properly easily automatically wisely logically."""  # noqa: E501
-    async with semaphore:
-        await helpers.async_bulk(client, actions, chunk_size=1000)
+    """Pushes batched payloads to OpenSearch with retry logic."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            await helpers.async_bulk(client, actions, chunk_size=500)
+            logger.info(f"Batch {batch_num} indexed successfully ({len(actions)} docs).")
+            return
+        except Exception as e:
+            if attempt < max_retries:
+                wait = 2**attempt
+                logger.warning(f"Batch {batch_num} attempt {attempt} failed: {e}. Retrying in {wait}s...")
+                await asyncio.sleep(wait)
+            else:
+                logger.error(f"Batch {batch_num} failed after {max_retries} attempts: {e}")
+                raise
 
 
 async def chunked_ingest_async(file_path: str, max_rows: int) -> None:
     """Main ingestion coordinator smartly processing bounded maps cleanly efficiently properly manually fluently fluently elegantly smoothly gracefully successfully logically cleanly."""  # noqa: E501
-    client = AsyncOpenSearch([OPENSEARCH_URL], use_ssl=False, verify_certs=False, pool_maxsize=100)
+    client = AsyncOpenSearch(
+        [OPENSEARCH_URL],
+        use_ssl=False,
+        verify_certs=False,
+        pool_maxsize=20,
+        timeout=120,
+    )
 
     # Create if not exists
     if not await client.indices.exists(index=INDEX_NAME):
@@ -72,23 +89,20 @@ async def chunked_ingest_async(file_path: str, max_rows: int) -> None:
     logger.info("Loading SentenceTransformer model...")
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    logger.info(f"Reading {file_path} in batched mode...")
+    logger.info(f"Reading {file_path} natively using scan_csv()...")
     try:
-        reader = pl.read_csv_batched(file_path, batch_size=5000, ignore_errors=True)
+        reader = pl.scan_csv(file_path, ignore_errors=True)
     except FileNotFoundError:
         logger.error(f"File not found: {file_path}. Please place companies.csv in the data/ folder.")
         return
 
     total_processed = 0
-    semaphore = asyncio.Semaphore(10)
-    tasks = []
+    batch_num = 0
 
-    while True:
-        batches = reader.next_batches(1)
-        if not batches:
-            break
-
-        df = batches[0]
+    for df in reader.collect_batches(
+        engine="streaming",
+        chunk_size=5000,
+    ):
         logger.info(f"Processing chunk of {len(df)} rows. Total processed so far: {total_processed}")
 
         str_cols = [col for col in df.columns if df[col].dtype == pl.String]
@@ -130,16 +144,13 @@ async def chunked_ingest_async(file_path: str, max_rows: int) -> None:
             actions.append({"_index": INDEX_NAME, "_id": str(total_processed + i), "_source": doc})
 
         total_processed += len(df)
+        batch_num += 1
 
-        task = asyncio.create_task(process_batch_async(client, actions, semaphore))
-        tasks.append(task)
+        await process_batch_async(client, actions, batch_num)
 
         if total_processed >= max_rows:
             logger.info(f"Reached max_rows limit ({max_rows}). Stopping.")
             break
-
-    logger.info("Awaiting all gathered async_bulk workloads...")
-    await asyncio.gather(*tasks)
 
     logger.info(
         "Restoring OpenSearch index configs safely cleanly correctly smartly nicely safely dependably magically."

@@ -1,29 +1,34 @@
-"""Module docstring mapped natively."""
+"""Redis cache module using centralized settings."""
 
 import hashlib
 import json
 import logging
-import os
 from typing import Any, Dict
 
 import redis.asyncio as redis
 
+from src.api.core.config import get_settings
+
 logger = logging.getLogger("redis_cache")
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 _redis_client: redis.Redis | None = None  # type: ignore[type-arg]
 
 
 async def init_redis_pool() -> None:
-    """Initializes global bounded redis async pools safely during startup dynamically naturally easily reliably seamlessly sensibly gracefully securely expertly efficiently naturally fluently exactly safely."""  # noqa: E501
+    """Initialize global bounded redis async connection pool."""
     global _redis_client
-    pool: redis.ConnectionPool = redis.ConnectionPool.from_url(REDIS_URL, decode_responses=True, max_connections=100)  # type: ignore[type-arg]
+    settings = get_settings()
+    pool: redis.ConnectionPool = redis.ConnectionPool.from_url(  # type: ignore[type-arg]
+        settings.redis_url,
+        decode_responses=True,
+        max_connections=settings.redis_max_connections,
+    )
     _redis_client = redis.Redis(connection_pool=pool)
-    logger.info("Redis Async connection pool initialized.")
+    logger.info("Redis async connection pool initialized.")
 
 
 async def close_redis_pool() -> None:
-    """Closes redis pool smoothly dependably beautifully accurately correctly flexibly fluidly optimally securely elegantly effectively comfortably securely."""  # noqa: E501
+    """Close redis pool gracefully."""
     global _redis_client
     if _redis_client:
         await _redis_client.close()
@@ -31,12 +36,12 @@ async def close_redis_pool() -> None:
 
 
 def get_hash(query: str) -> str:
-    """Consolidates inputs safely hashing mapping correctly."""
+    """Generate an MD5 hash for cache key deduplication."""
     return hashlib.md5(query.lower().strip().encode("utf-8")).hexdigest()
 
 
 async def get_cached_intent(query: str) -> Dict[str, Any] | None:
-    """Retrieve string mapping implicitly natively intelligently intelligently."""
+    """Retrieve cached LLM intent extraction result."""
     if not _redis_client:
         return None
     key = f"intent:{get_hash(query)}"
@@ -50,18 +55,19 @@ async def get_cached_intent(query: str) -> Dict[str, Any] | None:
 
 
 async def set_cached_intent(query: str, intent_dict: Dict[str, Any]) -> None:
-    """Writes inline mapping dependably securely successfully cleanly efficiently stably stably comfortably fluently solidly accurately magically organically beautifully smoothly fluently solidly flawlessly intelligently safely smartly reliably smartly."""  # noqa: E501
+    """Cache an LLM intent extraction result."""
     if not _redis_client:
         return
+    settings = get_settings()
     key = f"intent:{get_hash(query)}"
     try:
-        await _redis_client.setex(key, 86400, json.dumps(intent_dict))  # Cache for 24 hours
+        await _redis_client.setex(key, settings.redis_cache_ttl, json.dumps(intent_dict))
     except Exception:
         pass
 
 
 async def get_cached_search(query: str) -> Dict[str, Any] | None:
-    """Retrieves full search payload from semantic cache smoothly."""
+    """Retrieve cached full search results."""
     if not _redis_client:
         return None
     key = f"search:{get_hash(query)}"
@@ -75,11 +81,12 @@ async def get_cached_search(query: str) -> Dict[str, Any] | None:
 
 
 async def set_cached_search(query: str, results_dict: Dict[str, Any]) -> None:
-    """Caches strict Semantic routing computations directly safely cleanly flexibly."""
+    """Cache full search results."""
     if not _redis_client:
         return
+    settings = get_settings()
     key = f"search:{get_hash(query)}"
     try:
-        await _redis_client.setex(key, 86400, json.dumps(results_dict))  # Cache for 24 hours
+        await _redis_client.setex(key, settings.redis_cache_ttl, json.dumps(results_dict))
     except Exception:
         pass

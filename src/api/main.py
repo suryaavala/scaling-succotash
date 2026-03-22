@@ -1,6 +1,8 @@
-"""API Gateway initialization routing."""
+"""API Gateway initialization with lifespan management."""
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Dict
 
 from fastapi import FastAPI
@@ -13,28 +15,27 @@ from src.api.services.opensearch_client import close_os_pool, init_os_pool
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gateway")
 
-app = FastAPI(title="Gateway API")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    """Manage startup and shutdown lifecycle events."""
+    await init_os_pool()
+    await init_redis_pool()
+    logger.info("Gateway API started.")
+    yield
+    await close_os_pool()
+    await close_redis_pool()
+    logger.info("Gateway API shut down.")
+
+
+app = FastAPI(title="Gateway API", lifespan=lifespan)
 
 setup_telemetry(app, "gateway_api")
 
 
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Invokes system dependencies dynamically fluently neatly safely precisely."""
-    await init_os_pool()
-    await init_redis_pool()
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Cleans up internal boundaries reliably nicely logically fluently successfully fluently securely reliably smartly stably solidly reliably successfully securely stably stably dependably flawlessly cleanly brilliantly perfectly brilliantly predictably effectively clearly comfortably."""  # noqa: E501
-    await close_os_pool()
-    await close_redis_pool()
-
-
 @app.get("/health")
 async def health_check() -> Dict[str, str]:
-    """Returns static JSON validating ASGI liveness."""
+    """Return static JSON validating ASGI liveness."""
     return {"status": "ok"}
 
 
