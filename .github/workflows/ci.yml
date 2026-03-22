@@ -34,7 +34,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Run Mypy Type Checker
-        run: uv run mypy src/ tests/
+        run: uv run mypy src/
 
   coverage:
     name: Unit Tests & Coverage

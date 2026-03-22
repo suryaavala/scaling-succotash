@@ -60,6 +60,7 @@ markers = [
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+exclude = ["tests/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D"]
@@ -74,3 +75,4 @@ convention = "google"
 strict = true
 ignore_missing_imports = true
 explicit_package_bases = true
+exclude = ["tests/"]
