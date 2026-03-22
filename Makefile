@@ -27,6 +27,10 @@ typecheck:
 test:
 	uv run pytest -v
 
+# Testing fast
+test-fast:
+	uv run pytest -m "not e2e" -v
+
 # Testing E2e
 test-e2e:
 	uv run pytest -m e2e -v
