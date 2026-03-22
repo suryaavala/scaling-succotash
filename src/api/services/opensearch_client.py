@@ -81,13 +81,14 @@ class OSClient:
                 {"knn": {"embedding": {"vector": vector, "k": 100}}},
             ],
             "minimum_should_match": 1,
-            "filter": [],
         }
 
+        # Use LLM-extracted intent as soft boosts, not hard filters,
+        # to avoid zero results when the LLM extracts a non-exact term.
         if intent.get("industry"):
-            bool_query["filter"].append({"term": {"industry": intent["industry"].lower()}})
+            bool_query["should"].append({"match": {"industry": {"query": intent["industry"].lower(), "boost": 2.0}}})
         if intent.get("country"):
-            bool_query["filter"].append({"term": {"country": intent["country"].lower()}})
+            bool_query["should"].append({"match": {"country": {"query": intent["country"].lower(), "boost": 2.0}}})
 
         dsl = {"size": 100, "query": {"bool": bool_query}}
 
