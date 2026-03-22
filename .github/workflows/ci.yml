@@ -7,34 +7,99 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  lint:
+    name: Fast Checks (Lint + Type)
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-        cache-dependency-glob: "uv.lock"
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version-file: ".python-version"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-    - name: Install dependencies
-      run: uv sync --all-extras --dev
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
 
-    - name: Check formatting
-      run: uv run ruff format --check .
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
 
-    - name: Run Ruff Linter
-      run: uv run ruff check .
+      - name: Check formatting
+        run: uv run ruff format --check .
 
-    - name: Run Mypy Type Checker
-      run: uv run mypy .
+      - name: Run Ruff Linter
+        run: uv run ruff check .
 
-    - name: Run Pytest Tests
-      run: uv run pytest tests/
+      - name: Run Mypy Type Checker
+        run: uv run mypy src/ tests/
+
+  coverage:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run Tests with Coverage (85% floor)
+        run: uv run pytest -m "not e2e" -v
+
+  e2e:
+    name: E2E Integration Tests
+    needs: [lint, coverage]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Start services
+        run: docker compose up --build -d
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for services..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Gateway is ready!"
+              break
+            fi
+            echo "Attempt $i..."
+            sleep 5
+          done
+
+      - name: Run E2E tests
+        run: uv run pytest -m e2e -v --no-cov
+
+      - name: Tear down services
+        if: always()
+        run: docker compose down -v

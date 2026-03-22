@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: setup install format lint typecheck test test-fast test-e2e test-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
+.PHONY: setup install format lint typecheck test test-fast test-e2e test-all ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
 
 # Environment Setup
 setup:
@@ -23,6 +23,12 @@ lint:
 
 typecheck:
 	uv run mypy src/ tests/
+
+# Full local CI pipeline
+ci: lint typecheck test-fast
+
+# Full CI pipeline
+ci-all: lint format typecheck test-all
 
 # Testing
 test:
