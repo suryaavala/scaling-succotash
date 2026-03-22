@@ -1,13 +1,46 @@
-.venv
-venv
-__pycache__
+# Version control
+.git/
+.github/
+
+# Virtual environments
+.venv/
+venv/
+
+# Python caches
+__pycache__/
 *.pyc
-.git
-.github
-.pytest_cache
-.mypy_cache
-.ruff_cache
-archive
-data
-docs
-tests
+*.pyo
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Data (mounted at runtime, never baked into images)
+data/
+
+# Tests & docs (not needed in production images)
+tests/
+docs/
+spec/
+pr_description/
+notebooks/
+archive/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Misc
+*.md
+LICENSE
+Makefile
+.pre-commit-config.yaml
+.python-version

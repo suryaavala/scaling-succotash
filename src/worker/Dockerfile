@@ -34,6 +34,7 @@ RUN groupadd --system appuser && \
 
 WORKDIR /app
 
+# Copy venv and source — use --chown to avoid separate chown step
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appuser /app/src /app/src
 

@@ -179,7 +179,10 @@ services:
     container_name: data_ingester
     profiles: ["ingest"]
     entrypoint: ["/usr/bin/dumb-init", "--"]
-    command: ["/app/.venv/bin/python", "scripts/ingest_data.py", "--file", "data/${DATA_FILE:-companies.csv}", "--limit", "${LIMIT:-7000000}"]
+    command: >
+      /app/.venv/bin/python scripts/ingest_data.py
+      --file data/${DATA_FILE:-companies.csv}
+      --limit ${LIMIT:-7000000}
     volumes:
       - ./data:/app/data
       - ./scripts:/app/scripts

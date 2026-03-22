@@ -17,13 +17,13 @@ def build_search_dsl(request: SearchRequest) -> Dict[str, Any]:
         must_clauses.append({"match": {"name": request.name}})
 
     if request.industry:
-        filter_clauses.append({"term": {"industry": request.industry.lower()}})
+        filter_clauses.append({"term": {"industry.keyword": request.industry.lower()}})
 
     if request.size_range:
-        filter_clauses.append({"term": {"size_range": request.size_range.lower()}})
+        filter_clauses.append({"term": {"size_range.keyword": request.size_range.lower()}})
 
     if request.country:
-        filter_clauses.append({"term": {"country": request.country.lower()}})
+        filter_clauses.append({"term": {"country.keyword": request.country.lower()}})
 
     if request.tags:
         for tag in request.tags:
