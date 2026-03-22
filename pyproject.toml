@@ -46,6 +46,8 @@ dev = [
     "kaggle>=2.0.0",
     "faker>=40.11.0",
     "httpx>=0.28.1",
+    "pre-commit>=4.5.1",
+    "pydantic-settings>=2.13.1",
 ]
 
 [tool.pytest.ini_options]
