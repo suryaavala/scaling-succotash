@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: help setup install format lint typecheck test test-fast test-e2e test-all ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
+.PHONY: help setup install install-all format lint typecheck test test-fast test-e2e test-all ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  \033[1;36mSetup & Install\033[0m"
 	@echo "    setup           Create a uv virtual environment and sync all dependencies"
 	@echo "    install         Sync dependencies into the existing virtual environment"
+	@echo "    install-all     Sync all dependencies into the existing virtual environment"
 	@echo "    install-hooks   Install pre-commit hooks (ruff, mypy, whitespace fixers)"
 	@echo ""
 	@echo "  \033[1;36mCode Quality\033[0m"
@@ -62,6 +63,9 @@ setup:
 install:
 	uv sync
 
+install-all:
+	uv sync --all-extras --dev
+
 all: install format lint typecheck test
 
 # Code Quality & Formatting
@@ -90,7 +94,7 @@ test-fast:
 	uv run pytest -m "not e2e" -v
 
 test-e2e:
-	uv run pytest -m e2e -v
+	uv run pytest -m e2e -v --no-cov
 
 test-all:
 	uv run pytest -v
