@@ -93,7 +93,7 @@ test:
 test-fast:
 	uv run pytest -m "not e2e" -v
 
-test-e2e:
+test-e2e: up
 	uv run pytest -m e2e -v --no-cov
 
 test-all:
