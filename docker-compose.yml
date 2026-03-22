@@ -23,13 +23,31 @@ services:
     deploy:
       resources:
         limits:
+          cpus: "2"
           memory: 1536M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   redis:
     image: redis:alpine
     container_name: redis
     ports:
       - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -39,14 +57,17 @@ services:
     ports:
       - "16686:16686"
       - "4317:4317"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
 
   gateway_api:
     build:
       context: .
       dockerfile: ./src/api/Dockerfile
     container_name: gateway_api
-    volumes:
-      - ./src/:/app/src
     environment:
       - PROFILING_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -56,18 +77,30 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     ports:
       - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     depends_on:
-      - opensearch
-      - redis
-      - inference_service
+      opensearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      inference_service:
+        condition: service_started
 
   inference_service:
     build:
       context: .
       dockerfile: ./src/inference/Dockerfile
     container_name: inference_service
-    volumes:
-      - ./src/:/app/src
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     ports:
@@ -77,35 +110,50 @@ services:
         limits:
           cpus: "2"
           memory: 2048M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
 
   celery_worker:
     build:
       context: .
       dockerfile: ./src/worker/Dockerfile
     container_name: celery_worker
-    volumes:
-      - ./src/:/app/src
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - REDIS_URL=redis://redis:6379/0
       - OPENSEARCH_URL=http://opensearch:9200
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
     depends_on:
-      - redis
-      - opensearch
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
 
   frontend:
     build:
       context: .
       dockerfile: ./src/frontend/Dockerfile
     container_name: frontend
-    volumes:
-      - ./src/:/app/src
     ports:
       - "8501:8501"
     environment:
       - API_URL=http://gateway_api:8000
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     depends_on:
-      - gateway_api
+      gateway_api:
+        condition: service_healthy
 
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.11.0
@@ -115,8 +163,14 @@ services:
     environment:
       OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
 
   data_ingester:
     build:
@@ -124,15 +178,16 @@ services:
       dockerfile: ./src/worker/Dockerfile
     container_name: data_ingester
     profiles: ["ingest"]
-    entrypoint: ["uv", "run", "python", "scripts/ingest_data.py"]
+    entrypoint: ["/usr/bin/dumb-init", "--"]
     command: >
+      /app/.venv/bin/python scripts/ingest_data.py
       --file data/${DATA_FILE:-companies.csv}
       --limit ${LIMIT:-7000000}
     volumes:
       - ./data:/app/data
       - ./scripts:/app/scripts
-      - ./src:/app/src
     environment:
       - OPENSEARCH_URL=http://opensearch:9200
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy

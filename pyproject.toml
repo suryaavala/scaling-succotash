@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn>=0.23.2",
     "opensearch-py>=2.3.1",
     "pydantic>=2.4.2",
+    "pydantic-settings>=2.13.1",
     "litellm>=1.0.0",
     "polars>=0.19.12",
     "celery>=5.3.4",
@@ -51,7 +52,7 @@ dev = [
     "faker>=40.11.0",
     "httpx>=0.28.1",
     "pre-commit>=4.5.1",
-    "pydantic-settings>=2.13.1",
+    
 ]
 
 [tool.pytest.ini_options]
