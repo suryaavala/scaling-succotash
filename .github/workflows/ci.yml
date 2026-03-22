@@ -84,10 +84,19 @@ jobs:
 
       - name: Wait for services to be ready
         run: |
-          echo "Waiting for services..."
+          echo "Waiting for Gateway API..."
           for i in $(seq 1 30); do
             if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
               echo "Gateway is ready!"
+              break
+            fi
+            echo "Attempt $i..."
+            sleep 5
+          done
+          echo "Waiting for OpenSearch..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:9200/_cluster/health > /dev/null 2>&1; then
+              echo "OpenSearch is ready!"
               break
             fi
             echo "Attempt $i..."
