@@ -93,3 +93,4 @@ archive/
 .venv/
 data/
 pr_description/
+.coverage

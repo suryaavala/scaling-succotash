@@ -69,6 +69,7 @@ clean:
 	rm -rf .sandbox_venv
 	rm -rf .tmp
 	rm -rf archive
+	rm -rf .coverage
 	find . -type d -name "__pycache__" -exec rm -r {} +
 
 # Docker Operations
