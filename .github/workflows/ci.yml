@@ -77,31 +77,10 @@ jobs:
       - name: Install dependencies
         run: make install-all
 
-      - name: Start services
+      - name: Start services and wait for readiness
         run: make up
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
-      - name: Wait for services to be ready
-        run: |
-          echo "Waiting for Gateway API..."
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              echo "Gateway is ready!"
-              break
-            fi
-            echo "Attempt $i..."
-            sleep 5
-          done
-          echo "Waiting for OpenSearch..."
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:9200/_cluster/health > /dev/null 2>&1; then
-              echo "OpenSearch is ready!"
-              break
-            fi
-            echo "Attempt $i..."
-            sleep 5
-          done
 
       - name: Run E2E tests
         run: make test-e2e

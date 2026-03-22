@@ -37,7 +37,7 @@ help:
 	@echo "    run-frontend    Start the Streamlit frontend UI"
 	@echo ""
 	@echo "  \033[1;36mDocker\033[0m"
-	@echo "    up              Build and start all Docker Compose services (detached)"
+	@echo "    up              Build and start all Docker Compose services (detached),  Wait for services to be up (300s timeout)"
 	@echo "    down            Stop and remove all Docker Compose services"
 	@echo "    restart         Restart all Docker Compose services"
 	@echo "    logs            Tail logs from all Docker Compose services"
@@ -93,7 +93,7 @@ test:
 test-fast:
 	uv run pytest -m "not e2e" -v
 
-test-e2e: up
+test-e2e:
 	uv run pytest -m e2e -v --no-cov
 
 test-all:
@@ -130,7 +130,7 @@ clean:
 
 # Docker Operations
 up:
-	docker compose up --build -d
+	docker compose up --build -d --wait --wait-timeout 360
 
 down:
 	docker compose down
