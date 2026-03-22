@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: setup install format lint typecheck test run-gateway run-inference run-worker clean up down restart logs ingest all
+.PHONY: setup install format lint typecheck test test-fast test-e2e test-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
 
 # Environment Setup
 setup:
@@ -19,21 +19,27 @@ format:
 
 lint:
 	uv run ruff check .
+	uv run ruff format --check .
 
 typecheck:
-	uv run mypy .
+	uv run mypy src/ tests/
 
 # Testing
 test:
 	uv run pytest -v
 
-# Testing fast
 test-fast:
 	uv run pytest -m "not e2e" -v
 
-# Testing E2e
 test-e2e:
 	uv run pytest -m e2e -v
+
+test-all:
+	uv run pytest -v
+
+# Pre-commit Hooks
+install-hooks:
+	uv run pre-commit install
 
 # Service Execution
 run-gateway:
