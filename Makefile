@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
+.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks k8s-status k8s-metrics k8s-endpoints k8s-debug-dns
 
 # Default target
 help:
@@ -43,6 +43,10 @@ help:
 	@echo "    deploy          Deploy Kubernetes manifests via Kustomize"
 	@echo "    logs            Tail K8s logs of the Gateway API pod"
 	@echo "    k9s             Open k9s terminal UI for local cluster"
+	@echo "    k8s-status      Print cluster info and overview of all namespace resources"
+	@echo "    k8s-metrics     Display live CPU/Memory utilization of nodes and pods"
+	@echo "    k8s-endpoints   Query endpoint bindings and ingress routing assignments"
+	@echo "    k8s-debug-dns   Spin up a busybox pod natively to interactive shell for DNS tests"
 	@echo ""
 	@echo "  \033[1;36mDocker Compose (Legacy)\033[0m"
 	@echo "    up              Build and start all Docker Compose services"
@@ -170,6 +174,26 @@ logs:
 
 k9s:
 	k9s
+
+k8s-status:
+	@echo "Fetching Global Cluster Status..."
+	kubectl cluster-info
+	kubectl get all
+
+k8s-metrics:
+	@echo "Fetching Node & Pod Utilization Metrics..."
+	kubectl top nodes
+	kubectl top pods -A
+
+k8s-endpoints:
+	@echo "Fetching Endpoint Bindings and Ingress Routing Maps..."
+	kubectl get endpoints -A
+	kubectl get ingress -A
+
+k8s-debug-dns:
+	@echo "Spawning ephemeral busybox container..."
+	@echo "Tip: Inside the shell, try 'ping gateway-api' or 'nslookup redis'"
+	kubectl run ephemeral-debug --rm -i --tty --image busybox --restart=Never -- sh
 
 # Docker Compose Operations (Legacy)
 up:
