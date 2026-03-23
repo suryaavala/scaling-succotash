@@ -2,10 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - opensearch/
-  - redis/
-  - api/
-  - inference/
-  - worker/
-  - frontend/
-  - jaeger/
+  - opensearch/opensearch.yaml
+  - redis/redis.yaml
+  - api/api.yaml
+  - inference/inference.yaml
+  - worker/worker.yaml
+  - frontend/frontend.yaml
+  - jaeger/jaeger.yaml
