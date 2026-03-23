@@ -41,21 +41,60 @@ If a pod fails to start and enters a `CrashLoopBackOff` state:
    - **Liveness Probe Failed**: The application is deadlocking or taking too long to start. Increase `initialDelaySeconds`.
    - **Configuration Error**: A missing environment variable or secret.
 
-## 3. Wiping and Resetting State
+## 3. Wiping and Resetting State (Data Corruption)
 
-If the `opensearch` or `redis` data becomes corrupted, you may need to wipe the PersistentVolumeClaims (PVCs).
+If `opensearch` or `redis` data becomes corrupted, here is how you reset their state cleanly:
 
-1. Delete the PVCs:
-   ```bash
-   kubectl delete pvc opensearch-data-opensearch-0 redis-data
-   ```
-2. Delete the pods to force recreation and rebinding to new empty volumes:
-   ```bash
-   kubectl delete pod opensearch-0
-   kubectl delete deployment redis
-   ```
-3. Re-apply the manifests:
-   ```bash
-   make deploy
-   ```
-4. Re-ingest the data as the search index will be empty.
+### OpenSearch (HostPath Mapping)
+OpenSearch relies on a direct `hostPath` mount to your laptop's `./data/opensearch` directory for cross-compatibility with Docker Compose.
+To wipe OpenSearch:
+1. Shut down the cluster: `make cluster-down`
+2. Delete the local directory: `rm -rf ./data/opensearch/*`
+3. Restart the cluster: `make cluster-up && make docker-build-local && make deploy`
+
+### Redis (PersistentVolumeClaim)
+Redis utilizes a standard Kubernetes PVC. To wipe it:
+1. `kubectl delete pvc redis-data-redis-0`
+2. `kubectl delete statefulset redis`
+3. `make deploy` (Forces recreation of an empty volume instance).
+
+## 4. Useful `kubectl` Cheat Sheet
+
+Here are vital native `kubectl` commands for observing and manipulating the cluster directly:
+
+- **Get everything in the namespace:**
+  `kubectl get all`
+- **Tail live logs from a specific deployment (e.g. Gateway API):**
+  `kubectl logs -l app=gateway-api -f`
+- **Execute an interactive bash shell inside a running pod:**
+  `kubectl exec -it deployment/gateway-api -- /bin/bash`
+- **Force a rolling restart of a deployment (zero downtime):**
+  `kubectl rollout restart deployment/gateway-api`
+- **Check resource utilization (CPU/Memory) of pods:**
+  `kubectl top pods`
+- **View detailed node capacity and allocations:**
+  `kubectl describe node kind-worker`
+
+## 5. Useful `kind` Cheat Sheet
+
+When managing the overarching docker-in-docker `kind` infrastructure:
+
+- **List active clusters:**
+  `kind get clusters`
+- **Retrieve all control-plane and worker Docker nodes:**
+  `docker ps -f label=io.x-k8s.kind.cluster=kind`
+- **Export all cluster logs for offline debugging:**
+  `kind export logs ./kind-debug-logs`
+- **Manually load a newly built image without the Makefile:**
+  `kind load docker-image scaling-succotash-gateway_api:latest --name kind`
+
+## 6. Localhost Port Mappings Reference
+
+Through `kind-config.yaml` and `NodePort` injections, you can securely access K8s services natively on your local machine without `kubectl port-forward`:
+
+- `http://localhost:8000` -> **Gateway API**
+- `http://localhost:8001` -> **Inference LLM Service**
+- `http://localhost:8501` -> **Streamlit Frontend**
+- `http://localhost:9200` -> **OpenSearch Database**
+- `http://localhost:16686` -> **Jaeger UI**
+- `http://localhost:6379` -> **Redis** *(Note: Internal cluster only by default, requires native port-forward `kubectl port-forward svc/redis 6379:6379` if external GUI connection is needed)*
