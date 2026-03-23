@@ -60,11 +60,8 @@ spec:
           volumeMounts:
             - name: opensearch-data
               mountPath: /usr/share/opensearch/data
-  volumeClaimTemplates:
-    - metadata:
-        name: opensearch-data
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        resources:
-          requests:
-            storage: 5Gi
+      volumes:
+        - name: opensearch-data
+          hostPath:
+            path: /mnt/data/opensearch
+            type: DirectoryOrCreate
