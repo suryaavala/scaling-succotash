@@ -104,7 +104,7 @@ test:
 test-fast:
 	uv run --all-extras pytest -m "not e2e" -v
 
-test-e2e: up
+test-e2e:
 	uv run --all-extras pytest -m e2e -v --no-cov
 
 # Pre-commit Hooks
