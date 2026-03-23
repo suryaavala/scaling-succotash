@@ -100,13 +100,13 @@ ci-all: lint format typecheck test
 
 # Testing
 test:
-	uv run pytest -v
+	uv run --all-extras pytest -v
 
 test-fast:
-	uv run pytest -m "not e2e" -v
+	uv run --all-extras pytest -m "not e2e" -v
 
 test-e2e: up
-	uv run pytest -m e2e -v --no-cov
+	uv run --all-extras pytest -m e2e -v --no-cov
 
 # Pre-commit Hooks
 install-hooks:
