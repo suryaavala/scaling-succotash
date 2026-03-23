@@ -27,6 +27,8 @@ spec:
                   name: api-secrets
                   key: GEMINI_API_KEY
                   optional: true
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
           resources:
             requests:
               memory: "256Mi"

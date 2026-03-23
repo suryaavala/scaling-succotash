@@ -31,6 +31,9 @@ spec:
         - name: inference
           image: scaling-succotash-inference_service:latest
           imagePullPolicy: Never
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
           ports:
             - containerPort: 8001
           resources:

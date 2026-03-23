@@ -44,6 +44,8 @@ spec:
                   optional: true
             - name: INFERENCE_URL
               value: "http://inference-service:8001"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
           ports:
             - containerPort: 8000
           resources:
