@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks k8s-status k8s-metrics k8s-endpoints k8s-debug-dns
+.PHONY: help setup install install-all all archive format lint typecheck test test-fast test-e2e ci ci-all clean run-gateway run-inference run-worker run-frontend cluster-up cluster-down docker-build-local deploy deploy-wait logs k9s k8s-status k8s-metrics k8s-endpoints k8s-debug-dns up down restart logs-compose download-data generate-data ingest-sample ingest-full ingest install-hooks 
 
 # Default target
 help:
@@ -41,6 +41,7 @@ help:
 	@echo "    cluster-down    Destroy local kind cluster"
 	@echo "    docker-build-local Build images and load into kind cluster"
 	@echo "    deploy          Deploy Kubernetes manifests via Kustomize"
+	@echo "    deploy-wait     Deploy Kubernetes manifests via Kustomize and wait for resources to be ready"
 	@echo "    logs            Tail K8s logs of the Gateway API pod"
 	@echo "    k9s             Open k9s terminal UI for local cluster"
 	@echo "    k8s-status      Print cluster info and overview of all namespace resources"
@@ -71,6 +72,10 @@ setup:
 	@echo "Setting up uv virtual environment and syncing dependencies..."
 	uv venv
 	uv sync
+
+# Pre-commit Hooks
+install-hooks:
+	uv run pre-commit install
 
 install:
 	uv sync
@@ -110,10 +115,6 @@ test-fast:
 
 test-e2e:
 	uv run --all-extras pytest -m e2e -v --no-cov
-
-# Pre-commit Hooks
-install-hooks:
-	uv run pre-commit install
 
 # Service Execution
 run-gateway:
@@ -168,6 +169,9 @@ docker-build-local:
 
 deploy:
 	kubectl apply -k k8s/base
+
+deploy-wait:
+	kubectly apply -k k8s/base --wait
 
 logs:
 	kubectl logs -l app=gateway-api -f
