@@ -156,11 +156,11 @@ docker-build-local:
 	docker build -t scaling-succotash-inference_service:latest -f src/inference/Dockerfile .
 	docker build -t scaling-succotash-celery_worker:latest -f src/worker/Dockerfile .
 	docker build -t scaling-succotash-frontend:latest -f src/frontend/Dockerfile .
-	@echo "Loading images into kind cluster..."
-	kind load docker-image scaling-succotash-gateway_api:latest
-	kind load docker-image scaling-succotash-inference_service:latest
-	kind load docker-image scaling-succotash-celery_worker:latest
-	kind load docker-image scaling-succotash-frontend:latest
+	@echo "Loading images into kind worker nodes ONLY (bypassing control-plane)..."
+	kind load docker-image scaling-succotash-gateway_api:latest --nodes kind-worker,kind-worker2
+	kind load docker-image scaling-succotash-inference_service:latest --nodes kind-worker,kind-worker2
+	kind load docker-image scaling-succotash-celery_worker:latest --nodes kind-worker,kind-worker2
+	kind load docker-image scaling-succotash-frontend:latest --nodes kind-worker,kind-worker2
 
 deploy:
 	kubectl apply -k k8s/base
