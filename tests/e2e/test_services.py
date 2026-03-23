@@ -30,14 +30,21 @@ def inference_url() -> str:
 async def _wait_for_service(url: str, retries: int = 20, delay: float = 5.0) -> httpx.Response:
     """Poll a URL until it responds or skip the test if exhausted."""
     async with httpx.AsyncClient(timeout=10.0) as client:
+        last_resp = None
         for attempt in range(retries):
             try:
                 resp = await client.get(url)
-                return resp
+                if resp.status_code < 500:
+                    return resp
+                last_resp = resp
             except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.ReadTimeout):
-                if attempt == retries - 1:
-                    pytest.skip(f"Service at {url} not ready after {retries * delay}s")
-                await asyncio.sleep(delay)
+                pass
+            
+            if attempt == retries - 1:
+                if last_resp is not None:
+                    return last_resp
+                pytest.skip(f"Service at {url} not ready after {retries * delay}s")
+            await asyncio.sleep(delay)
     pytest.skip(f"Service at {url} never became ready")
 
 
@@ -58,7 +65,7 @@ async def test_gateway_health(api_url: str) -> None:
 @pytest.mark.asyncio
 async def test_opensearch_cluster_health(opensearch_url: str) -> None:
     """Verify the OpenSearch container is up and cluster is green/yellow."""
-    resp = await _wait_for_service(f"{opensearch_url}/_cluster/health")
+    resp = await _wait_for_service(f"{opensearch_url}/_cluster/health?wait_for_status=yellow&timeout=30s")
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] in ("green", "yellow")

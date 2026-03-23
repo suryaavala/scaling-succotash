@@ -1,0 +1,43 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 443
+    protocol: TCP
+  - containerPort: 30000
+    hostPort: 8000
+    protocol: TCP
+  - containerPort: 30001
+    hostPort: 8001
+    protocol: TCP
+  - containerPort: 30501
+    hostPort: 8501
+    protocol: TCP
+  - containerPort: 30200
+    hostPort: 9200
+    protocol: TCP
+  - containerPort: 30686
+    hostPort: 16686
+    protocol: TCP
+  extraMounts:
+  - hostPath: ./data/opensearch
+    containerPath: /mnt/data/opensearch
+- role: worker
+  extraMounts:
+  - hostPath: ./data/opensearch
+    containerPath: /mnt/data/opensearch
+- role: worker
+  extraMounts:
+  - hostPath: ./data/opensearch
+    containerPath: /mnt/data/opensearch

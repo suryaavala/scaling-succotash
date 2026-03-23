@@ -46,7 +46,7 @@ async def test_intelligent_agentic_flow(api_url: str) -> None:
     """Test agentic flow dispatches a Celery task and polls for results."""
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
-            f"{api_url}/search/intelligent", json={"query": f"Find companies and summarize. Trace {uuid.uuid4()}"}
+            f"{api_url}/search/intelligent", json={"query": f"latest acquisitions by microsoft in ai. Trace {uuid.uuid4()}"}
         )
         assert resp.status_code == 200
         data = resp.json()

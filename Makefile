@@ -1,5 +1,5 @@
 export VIRTUAL_ENV=
-.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks
+.PHONY: help setup install install-all archive format lint typecheck test test-fast test-e2e ci ci-all run-gateway run-inference run-worker clean up down restart logs ingest all install-hooks k8s-status k8s-metrics k8s-endpoints k8s-debug-dns
 
 # Default target
 help:
@@ -36,11 +36,23 @@ help:
 	@echo "    run-worker      Start the Celery worker for agentic search workflows"
 	@echo "    run-frontend    Start the Streamlit frontend UI"
 	@echo ""
-	@echo "  \033[1;36mDocker\033[0m"
-	@echo "    up              Build and start all Docker Compose services (detached),  Wait for services to be up (300s timeout)"
+	@echo "  \033[1;36mKubernetes (Local kind)\033[0m"
+	@echo "    cluster-up      Provision local kind cluster and NGINX Ingress"
+	@echo "    cluster-down    Destroy local kind cluster"
+	@echo "    docker-build-local Build images and load into kind cluster"
+	@echo "    deploy          Deploy Kubernetes manifests via Kustomize"
+	@echo "    logs            Tail K8s logs of the Gateway API pod"
+	@echo "    k9s             Open k9s terminal UI for local cluster"
+	@echo "    k8s-status      Print cluster info and overview of all namespace resources"
+	@echo "    k8s-metrics     Display live CPU/Memory utilization of nodes and pods"
+	@echo "    k8s-endpoints   Query endpoint bindings and ingress routing assignments"
+	@echo "    k8s-debug-dns   Spin up a busybox pod natively to interactive shell for DNS tests"
+	@echo ""
+	@echo "  \033[1;36mDocker Compose (Legacy)\033[0m"
+	@echo "    up              Build and start all Docker Compose services"
 	@echo "    down            Stop and remove all Docker Compose services"
 	@echo "    restart         Restart all Docker Compose services"
-	@echo "    logs            Tail logs from all Docker Compose services"
+	@echo "    logs-compose    Tail logs from all Docker Compose services"
 	@echo ""
 	@echo "  \033[1;36mData Management\033[0m"
 	@echo "    download-data   Download the 7M-row Kaggle company dataset"
@@ -91,13 +103,13 @@ ci-all: lint format typecheck test
 
 # Testing
 test:
-	uv run pytest -v
+	uv run --all-extras pytest -v
 
 test-fast:
-	uv run pytest -m "not e2e" -v
+	uv run --all-extras pytest -m "not e2e" -v
 
-test-e2e: up
-	uv run pytest -m e2e -v --no-cov
+test-e2e:
+	uv run --all-extras pytest -m e2e -v --no-cov
 
 # Pre-commit Hooks
 install-hooks:
@@ -128,7 +140,62 @@ clean:
 	rm -rf .coverage
 	find . -type d -name "__pycache__" -exec rm -r {} +
 
-# Docker Operations
+# Kubernetes Operations (kind)
+cluster-up:
+	@echo "Provisioning local kind cluster..."
+	kind create cluster --config k8s/kind-config.yaml
+	@echo "Installing NGINX Ingress controller..."
+	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+	kubectl wait --namespace ingress-nginx \
+	  --for=condition=ready pod \
+	  --selector=app.kubernetes.io/component=controller \
+	  --timeout=90s
+
+cluster-down:
+	kind delete cluster
+
+docker-build-local:
+	@echo "Building local Docker images..."
+	docker build -t scaling-succotash-gateway_api:latest -f src/api/Dockerfile .
+	docker build -t scaling-succotash-inference_service:latest -f src/inference/Dockerfile .
+	docker build -t scaling-succotash-celery_worker:latest -f src/worker/Dockerfile .
+	docker build -t scaling-succotash-frontend:latest -f src/frontend/Dockerfile .
+	@echo "Loading images into kind worker nodes ONLY (bypassing control-plane)..."
+	kind load docker-image scaling-succotash-gateway_api:latest --nodes kind-worker,kind-worker2
+	kind load docker-image scaling-succotash-inference_service:latest --nodes kind-worker,kind-worker2
+	kind load docker-image scaling-succotash-celery_worker:latest --nodes kind-worker,kind-worker2
+	kind load docker-image scaling-succotash-frontend:latest --nodes kind-worker,kind-worker2
+
+deploy:
+	kubectl apply -k k8s/base
+
+logs:
+	kubectl logs -l app=gateway-api -f
+
+k9s:
+	k9s
+
+k8s-status:
+	@echo "Fetching Global Cluster Status..."
+	kubectl cluster-info
+	kubectl get all
+
+k8s-metrics:
+	@echo "Fetching Node & Pod Utilization Metrics..."
+	kubectl top nodes
+	kubectl top pods -A
+
+k8s-endpoints:
+	@echo "Fetching Endpoint Bindings and Ingress Routing Maps..."
+	kubectl get endpoints -A
+	kubectl get ingress -A
+
+k8s-debug-dns:
+	@echo "Spawning ephemeral busybox container..."
+	@echo "Tip: Inside the shell, try 'ping gateway-api' or 'nslookup redis'"
+	kubectl run ephemeral-debug --rm -i --tty --image busybox --restart=Never -- sh
+
+# Docker Compose Operations (Legacy)
 up:
 	docker compose up --build -d --wait --wait-timeout 360
 
@@ -138,7 +205,7 @@ down:
 restart:
 	docker compose restart
 
-logs:
+logs-compose:
 	docker compose logs -f
 
 # Data Management

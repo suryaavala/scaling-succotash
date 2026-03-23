@@ -6,8 +6,14 @@
 
 Historically, standard CRUD web applications focused solely on direct SQL relational lookups. The paradigm has shifted towards **Agentic Intelligence Systems**—environments where the system autonomously interprets vague human intent, mathematically measures semantic similarity, and defers complex multi-stage synthesis pipelines to asynchronous worker queues. 
 
-We split this repository strictly into separated microservices (`gateway_api`, `inference_service`, `worker`) even for local development. Why? 
+We split this repository strictly into separated microservices (`gateway_api`, `inference_service`, `worker`). Why? 
 Because CPU-bound machine learning matrix multiplications (like calculating 384-dimensional embeddings in PyTorch) will instantly stall an asynchronous I/O web thread like FastAPI parsing event loops. **Compute Isolation** solves this inherently, guaranteeing low-latency scalability natively.
+
+### The Kubernetes (V10) Orchestration Shift
+Running complex microservices efficiently requires dynamic orchestration. We transitioned our local and production deployment posture from **Docker Compose** directly to **Kubernetes** utilizing `kind` locally. This ensures:
+- **Self-Healing Infrastructure**: Kubernetes automatically restarts pods that fail liveness probes.
+- **Advanced Rollouts**: We can confidently stream updates into production leveraging zero-downtime rolling updates.
+- **Resource Scheduling**: Kubernetes places CPU-heavy PyTorch containers accurately onto specific compute nodes containing adequate memory dynamically.
 
 ---
 
