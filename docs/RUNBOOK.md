@@ -98,3 +98,31 @@ Through `kind-config.yaml` and `NodePort` injections, you can securely access K8
 - `http://localhost:9200` -> **OpenSearch Database**
 - `http://localhost:16686` -> **Jaeger UI**
 - `http://localhost:6379` -> **Redis** *(Note: Internal cluster only by default, requires native port-forward `kubectl port-forward svc/redis 6379:6379` if external GUI connection is needed)*
+
+## 7. Cluster Status, Stats, & Core Networking
+
+When dealing with intermittent latency, DNS failure, or internal routing black holes between the microservices natively running inside Kubernetes, utilize the below utilities to triage effectively:
+
+### Core Cluster & Hardware Metrics
+- **Top-level Cluster Health Check:** `kubectl cluster-info`
+- **View CPU/Memory live consumption across Nodes:** `kubectl top nodes`
+- **View CPU/Memory live consumption across Pods:** `kubectl top pods -A`
+- **Deep inspection of Node allocation limits & conditions (CPU thresholds, Taints):** `kubectl describe nodes`
+- **Check persistent volume usage and bounds:** `kubectl get pvc,pv -A`
+
+### Network Routing & DNS Validation
+Kubernetes utilizes inner-cluster DNS (CoreDNS) and Endpoint mapping to distribute internal requests cleanly via standard Service names.
+- **Inspect the global Service to Endpoint Maps:** `kubectl get endpoints -A` 
+  *(Crucial for checking if a Service, like `opensearch:9200`, actually resolves back to an active pod IP!)*
+- **Spin up a disposable busybox container internally to aggressively ping CoreDNS or DNS lookup another service internally:**
+  ```bash
+  kubectl run ephemeral-debug --rm -i --tty --image busybox --restart=Never -- sh
+  # Inside the shell: ping gateway-api
+  # Inside the shell: nslookup redis
+  # Inside the shell: wget -qO- default.svc.cluster.local
+  ```
+- **Inspect native CNI configurations & overlays on the host natively (Calico/Kindnet config inspection):**
+  `kubectl get daemonsets -n kube-system`
+- **Check live inbound internet-facing routing overlays/Ingress (If provisioned via NGINX):** `kubectl get ingress -A`
+- **Analyze core `kube-proxy` rules dynamically loaded physically onto worker hosts (Requires node shelling):**
+  `docker exec -it kind-worker bash -c "iptables-save" | grep gateway`
