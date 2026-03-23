@@ -22,5 +22,5 @@ Submitting natural language (e.g., `"tech companies in California"`) successfull
 ![Intelligent Search Results](assets/intelligent_search.png)
 
 ### End-to-End Test Recording
-Watch the automated browser test session interacting with the live Docker Compose environment:
+Watch the automated browser test session interacting with the live environment orchestrating flawlessly over native localhost port bindings:
 ![Frontend Test Recording](assets/integration_test.webp)

@@ -50,10 +50,8 @@ We use `kind` (Kubernetes in Docker) for production-parity local orchestration.
    make docker-build-local
    make deploy
    ```
-4. **Access the API:**
-   ```bash
-   make port-forward
-   ```
+4. **Access the Cluster Natively:**
+   Thanks to `kind-config.yaml` host mapping with NodePorts, you can immediately access all services on `localhost` exactly as if you were running Docker Compose (no `kubectl port-forward` needed!).
 
 ### Option 2: Docker Compose (Legacy)
 1. **Environment Setup:** `cp .env.example .env` and add `GEMINI_API_KEY`.

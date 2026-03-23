@@ -41,7 +41,6 @@ help:
 	@echo "    cluster-down    Destroy local kind cluster"
 	@echo "    docker-build-local Build images and load into kind cluster"
 	@echo "    deploy          Deploy Kubernetes manifests via Kustomize"
-	@echo "    port-forward    Forward localhost:8000 to Gateway API"
 	@echo "    logs            Tail K8s logs of the Gateway API pod"
 	@echo "    k9s             Open k9s terminal UI for local cluster"
 	@echo ""
@@ -156,16 +155,15 @@ docker-build-local:
 	docker build -t scaling-succotash-gateway_api:latest -f src/api/Dockerfile .
 	docker build -t scaling-succotash-inference_service:latest -f src/inference/Dockerfile .
 	docker build -t scaling-succotash-celery_worker:latest -f src/worker/Dockerfile .
+	docker build -t scaling-succotash-frontend:latest -f src/frontend/Dockerfile .
 	@echo "Loading images into kind cluster..."
 	kind load docker-image scaling-succotash-gateway_api:latest
 	kind load docker-image scaling-succotash-inference_service:latest
 	kind load docker-image scaling-succotash-celery_worker:latest
+	kind load docker-image scaling-succotash-frontend:latest
 
 deploy:
 	kubectl apply -k k8s/base
-
-port-forward:
-	kubectl port-forward svc/gateway-api 8000:8000
 
 logs:
 	kubectl logs -l app=gateway-api -f

@@ -15,6 +15,21 @@ nodes:
   - containerPort: 443
     hostPort: 443
     protocol: TCP
+  - containerPort: 30000
+    hostPort: 8000
+    protocol: TCP
+  - containerPort: 30001
+    hostPort: 8001
+    protocol: TCP
+  - containerPort: 30501
+    hostPort: 8501
+    protocol: TCP
+  - containerPort: 30200
+    hostPort: 9200
+    protocol: TCP
+  - containerPort: 30686
+    hostPort: 16686
+    protocol: TCP
   extraMounts:
   - hostPath: ./data/opensearch
     containerPath: /mnt/data/opensearch

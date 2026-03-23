@@ -32,8 +32,8 @@ spec:
               memory: "256Mi"
               cpu: "250m"
             limits:
-              memory: "1Gi"
-              cpu: "1"
+              memory: "1.5Gi"
+              cpu: "2"
           livenessProbe:
             exec:
               command:
