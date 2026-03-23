@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, List, cast
 
 import httpx
+from circuitbreaker import CircuitBreakerError, circuit
 from opensearchpy import AsyncOpenSearch
 
 from src.api.core.config import Settings, get_settings
@@ -35,30 +36,53 @@ async def close_os_pool() -> None:
         _os_client = None
 
 
-async def get_embedding(text: str) -> list[float]:
-    """Generate embedding via the inference service."""
+@circuit(failure_threshold=5, recovery_timeout=30)  # type: ignore
+async def _fetch_embedding_raw(text: str) -> list[float]:
     settings = get_settings()
     if not _http_client:
-        return [0.0] * 384
+        raise RuntimeError("HTTP client not initialized")
+    resp = await _http_client.post(f"{settings.inference_url}/embed", json={"text": text})
+    resp.raise_for_status()
+    return cast(list[float], resp.json()["vector"])
+
+
+async def get_embedding(text: str) -> list[float]:
+    """Generate embedding via the inference service gracefully."""
     try:
-        resp = await _http_client.post(f"{settings.inference_url}/embed", json={"text": text})
-        resp.raise_for_status()
-        return cast(list[float], resp.json()["vector"])
-    except Exception:
+        res = await _fetch_embedding_raw(text)
+        return cast(list[float], res)
+    except CircuitBreakerError:
+        logger.error("Circuit breaker OPEN for embedding service. Returning zero vector.")
+        return [0.0] * 384
+    except Exception as e:
+        logger.error(f"Embedding generic error: {e}")
         return [0.0] * 384
 
 
-async def get_rerank_scores(query: str, candidates: list[str]) -> list[float]:
-    """Generate reranking scores via the inference service."""
+@circuit(failure_threshold=5, recovery_timeout=30)  # type: ignore
+async def _fetch_rerank_raw(query: str, candidates: list[str]) -> list[float]:
     settings = get_settings()
     if not candidates or not _http_client:
-        return []
+        raise RuntimeError("Invalid candidates or uninitialized HTTP client")
     resp = await _http_client.post(
         f"{settings.inference_url}/rerank",
         json={"query": query, "documents": candidates},
     )
     resp.raise_for_status()
     return cast(list[float], resp.json()["scores"])
+
+
+async def get_rerank_scores(query: str, candidates: list[str]) -> list[float]:
+    """Generate reranking scores via the inference service gracefully."""
+    try:
+        res = await _fetch_rerank_raw(query, candidates)
+        return cast(list[float], res)
+    except CircuitBreakerError:
+        logger.error("Circuit breaker OPEN for rerank service. Returning zeroed scores.")
+        return [0.0] * len(candidates)
+    except Exception as e:
+        logger.error(f"Reranking generic error: {e}")
+        return [0.0] * len(candidates)
 
 
 class OpenSearchCompanyRepository(CompanyRepository):

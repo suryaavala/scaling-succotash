@@ -88,10 +88,10 @@ async def test_get_embedding_handles_error() -> None:
 
 @pytest.mark.asyncio
 async def test_get_rerank_scores_no_client() -> None:
-    """Test reranking returns empty when no http client."""
+    """Test reranking gracefully degenerates securely to exact candidates layout."""
     opensearch_client._http_client = None
     result = await opensearch_client.get_rerank_scores("q", ["a", "b"])
-    assert result == []
+    assert result == [0.0, 0.0]
 
 
 @pytest.mark.asyncio
