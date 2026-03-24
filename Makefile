@@ -170,8 +170,11 @@ docker-build-local:
 deploy:
 	kubectl apply -k k8s/base
 
+# wait all the services to be running in default name spaces
 deploy-wait:
-	kubectly apply -k k8s/base --wait
+	kubectl apply -k k8s/base
+	kubectl wait --for=condition=Ready pod --all -n default --timeout=700s
+ 
 
 logs:
 	kubectl logs -l app=gateway-api -f
