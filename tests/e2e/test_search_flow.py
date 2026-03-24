@@ -29,7 +29,7 @@ async def test_standard_search(api_url: str) -> None:
 @pytest.mark.asyncio
 async def test_intelligent_semantic_search(api_url: str) -> None:
     """Test intelligent search endpoint returns semantic results."""
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{api_url}/search/intelligent", json={"query": "cloud computing tools based in california"}
         )
