@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+import redis.exceptions
+
 from src.api.core import redis_cache
 
 
@@ -76,6 +78,26 @@ async def test_get_cached_intent_returns_none_on_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_cached_intent_handles_chaos_connection_error() -> None:
+    """Test global connection failure drops silently."""
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(side_effect=redis.exceptions.ConnectionError("Connection refused"))
+    redis_cache._redis_client = mock_client
+    result = await redis_cache.get_cached_intent("test chaos error")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_cached_intent_handles_chaos_timeout_error() -> None:
+    """Test strict timeout drops silently bypassing blocks."""
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(side_effect=redis.exceptions.TimeoutError("Cache timeout"))
+    redis_cache._redis_client = mock_client
+    result = await redis_cache.get_cached_intent("test chaos timeout")
+    assert result is None
+
+
+@pytest.mark.asyncio
 async def test_set_cached_intent_calls_setex() -> None:
     """Test that set stores data with TTL."""
     mock_client = MagicMock()
@@ -92,6 +114,15 @@ async def test_set_cached_intent_handles_error() -> None:
     mock_client.setex = AsyncMock(side_effect=Exception("Redis write error"))
     redis_cache._redis_client = mock_client
     await redis_cache.set_cached_intent("test", {"key": "val"})  # Should not raise
+
+
+@pytest.mark.asyncio
+async def test_set_cached_intent_handles_chaos_connection_error() -> None:
+    """Test set handles connection errors organically."""
+    mock_client = MagicMock()
+    mock_client.setex = AsyncMock(side_effect=redis.exceptions.ConnectionError("Connection refused"))
+    redis_cache._redis_client = mock_client
+    await redis_cache.set_cached_intent("test chaos write error", {"key": "val"})  # Should not raise
 
 
 @pytest.mark.asyncio
@@ -127,6 +158,25 @@ async def test_set_cached_search_calls_setex() -> None:
     redis_cache._redis_client = mock_client
     await redis_cache.set_cached_search("test", {"results": []})
     mock_client.setex.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_cached_search_handles_chaos_error() -> None:
+    """Test get search handles connection failures dynamically."""
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(side_effect=redis.exceptions.ConnectionError("Connection refused"))
+    redis_cache._redis_client = mock_client
+    result = await redis_cache.get_cached_search("test chaos error")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_set_cached_search_handles_chaos_error() -> None:
+    """Test set search handles timeout interruptions silently."""
+    mock_client = MagicMock()
+    mock_client.setex = AsyncMock(side_effect=redis.exceptions.TimeoutError("Timeout"))
+    redis_cache._redis_client = mock_client
+    await redis_cache.set_cached_search("test chaos write error", {"results": []})  # Should not raise
 
 
 @pytest.mark.asyncio
