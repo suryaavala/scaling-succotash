@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Any, Dict, Optional, cast
 
+from circuitbreaker import CircuitBreakerError, circuit
 from litellm import acompletion
 from pydantic import BaseModel
 
@@ -43,6 +44,12 @@ FAST_PATH_HEURISTICS: Dict[str, Dict[str, Any]] = {
 }
 
 
+@circuit(failure_threshold=3, recovery_timeout=30)  # type: ignore
+async def _circuit_acompletion(model: str, messages: list[Dict[str, Any]], response_format: Any) -> Any:
+    """Wraps LiteLLM completion in an executable Circuit Breaker."""
+    return await acompletion(model=model, messages=messages, response_format=response_format)
+
+
 class LLMClient:
     """Client for LLM-based intent extraction with caching."""
 
@@ -70,7 +77,7 @@ class LLMClient:
             return {"industry": "Software", "requires_agent": requires_agent}, False
 
         try:
-            response = await acompletion(
+            response = await _circuit_acompletion(
                 model=settings.llm_model,
                 messages=[
                     {
@@ -93,8 +100,11 @@ class LLMClient:
 
             await set_cached_intent(query, intent)
             return cast(Dict[str, Any], json.loads(content)), False
+        except CircuitBreakerError:
+            logger.error("Circuit Breaker OPEN for LLM endpoint. Fast-failing semantic traversal.")
+            return IntentSchema().model_dump(), False
         except Exception as e:
-            logger.error(f"Intent extraction failed: {e}")
+            logger.error(f"Intent extraction generic exception: {e}")
             return IntentSchema().model_dump(), False
 
 

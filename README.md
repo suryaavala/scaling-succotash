@@ -10,8 +10,8 @@ This repository contains a production-grade, distributed microservices architect
 - **Inference Service**: Isolated PyTorch container running `SentenceTransformers` and Cross-Encoder ranking.
 - **Asynchronous Workers**: Celery + Redis for deep agentic LLM synthesis jobs.
 - **Datastore**: OpenSearch 2.11 (capped intelligently to 1GB RAM natively).
-- **Intelligence**: LiteLLM (Gemini 3.1 Flash Lite) parsed through strict Pydantic JSON enforcement.
-- **Caching**: Semantic intent caching mapping raw user questions to bypass LLM timeouts.
+- **Intelligence**: LiteLLM (Gemini 3.1 Flash Lite) parsed through strict Pydantic JSON enforcement. Protected actively by `@circuit` resilience bypassing upstream stalls.
+- **Caching**: Semantic intent caching engineered with `1.0s` TCP Chaos-Resilient Circuit Breakers bypassing dead nodes safely.
 - **Observability**: OpenTelemetry distributed tracing exported to a native Jaeger instance.
 - **Tooling (V4)**: `uv` for dependency management, `ruff` for linting, and `mypy` for strict typing inside a native `src/` layout.
 
