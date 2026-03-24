@@ -126,3 +126,9 @@ Kubernetes utilizes inner-cluster DNS (CoreDNS) and Endpoint mapping to distribu
 - **Check live inbound internet-facing routing overlays/Ingress (If provisioned via NGINX):** `kubectl get ingress -A`
 - **Analyze core `kube-proxy` rules dynamically loaded physically onto worker hosts (Requires node shelling):**
   `docker exec -it kind-worker bash -c "iptables-save" | grep gateway`
+
+## 8. PyFailsafe Circuit Breakers
+
+To isolate the `asyncio` event loops natively, the Gateway API is protected by `circuitbreaker==2.1.3` logic.
+- **LiteLLM Intent Parsing**: Wraps the AI SDK `failure_threshold=3, recovery_timeout=30`, returning exact-match semantic mappings avoiding complete LLM latency locks organically.
+- **Inference Stability (`OpenSearch`)**: Decorates local ML endpoints to instantly degrade to structural `[0.0]*dims` arrays natively if the backend times out, preventing Gateway exceptions.
