@@ -132,3 +132,10 @@ Kubernetes utilizes inner-cluster DNS (CoreDNS) and Endpoint mapping to distribu
 To isolate the `asyncio` event loops natively, the Gateway API is protected by `circuitbreaker==2.1.3` logic.
 - **LiteLLM Intent Parsing**: Wraps the AI SDK `failure_threshold=3, recovery_timeout=30`, returning exact-match semantic mappings avoiding complete LLM latency locks organically.
 - **Inference Stability (`OpenSearch`)**: Decorates local ML endpoints to instantly degrade to structural `[0.0]*dims` arrays natively if the backend times out, preventing Gateway exceptions.
+
+## 9. Chaos Testing & Resilience Validation
+
+To verify the event loops remain protected against catastrophic cache failures:
+1. **Pause the Cache Natively:** Execute `docker pause redis` or delete the Redis pod explicitly `kubectl delete pod -l app=redis`.
+2. **Execute Operations Natively:** Run semantic search queries via the Web UI (`http://localhost:8501`).
+3. **Verify TCP Deadlock Immunity:** The system relies on explicit `socket_timeout=1.0s` constraints. The initial paused TCP handshakes will snap instantly, reverting the API back to local embeddings rather than hanging the container infinitely internally.

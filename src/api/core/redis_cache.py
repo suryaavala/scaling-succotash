@@ -22,6 +22,8 @@ async def init_redis_pool() -> None:
         settings.redis_url,
         decode_responses=True,
         max_connections=settings.redis_max_connections,
+        socket_timeout=1.0,
+        socket_connect_timeout=1.0,
     )
     _redis_client = redis.Redis(connection_pool=pool)
     logger.info("Redis async connection pool initialized.")
