@@ -1,10 +1,12 @@
 """Worker background tasks mapping agent workflows natively."""
 
+import json
 import logging
 import os
 from typing import Any, Dict
 
-from celery import Celery
+import redis
+from celery import Celery, Task
 from litellm import completion
 
 logger = logging.getLogger("worker")
@@ -21,8 +23,33 @@ def search_recent_news(company_domain: str | None) -> str:
     return f"Recent news for {company_domain}: Announced $10M Series A funding last month."
 
 
+class DLQTask(Task):  # type: ignore[misc]
+    """Custom celery task that triggers native Redis DLQ on failure."""
+
+    def on_failure(
+        self, exc: Exception, task_id: str, args: tuple[Any, ...], kwargs: dict[str, Any], einfo: Any
+    ) -> None:
+        """Route failed parameters to the native Redis DLQ namespace."""
+        try:
+            r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+            payload = {
+                "task_id": task_id,
+                "task_name": self.name,
+                "args": args,
+                "kwargs": kwargs,
+                "exception": str(exc),
+                "traceback": str(einfo.traceback) if einfo else None,
+            }
+            r.lpush("celery:dlq", json.dumps(payload))
+            logger.error(f"Task {task_id} failed permanently. Routed inputs to celery:dlq.")
+        except Exception as dlq_err:
+            logger.error(f"Failed to route task {task_id} to DLQ: {dlq_err}")
+
+        super().on_failure(exc, task_id, args, kwargs, einfo)
+
+
 # Celery's task decorator lacks proper type hints
-@celery_app.task(bind=True, max_retries=3, name="tasks.agent_workflows.synthesize_agent_response")  # type: ignore[untyped-decorator]
+@celery_app.task(bind=True, base=DLQTask, max_retries=3, name="tasks.agent_workflows.synthesize_agent_response")  # type: ignore[untyped-decorator]
 def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, Any]]) -> Dict[str, Any]:
     """Coordinates nested search synthesis natively evaluating models."""
     if not candidates:
@@ -56,4 +83,4 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
         return {"summary": summary}
     except Exception as e:
         logger.error(f"Agent synthesis failed: {e}")
-        return {"summary": "Error synthesizing agent response."}
+        raise self.retry(exc=e, countdown=1)
