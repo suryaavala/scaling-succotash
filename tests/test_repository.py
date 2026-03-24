@@ -5,7 +5,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.api.services.opensearch_client import OpenSearchCompanyRepository
+from src.api.services.opensearch_client import (
+    OpenSearchCompanyRepository,
+    get_embedding,
+    get_rerank_scores,
+    _fetch_embedding_raw,
+    _fetch_rerank_raw,
+    init_os_pool,
+    close_os_pool,
+)
+from circuitbreaker import CircuitBreakerError
 
 
 @pytest.fixture
@@ -152,3 +161,61 @@ async def test_get_all_tags_empty(repo: OpenSearchCompanyRepository) -> None:
     repo.client.search = AsyncMock(return_value={"hits": {"total": {"value": 0}}})
     tags = await repo.get_all_tags()
     assert tags == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_embedding_raw_success() -> None:
+    """Test raw inference embedding execution."""
+    await init_os_pool()
+    with patch("src.api.services.opensearch_client._http_client.post", new_callable=AsyncMock) as mock_post:
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"vector": [1.0, 2.0]}
+        mock_post.return_value = mock_resp
+        res = await _fetch_embedding_raw("foo")
+    assert res == [1.0, 2.0]
+    await close_os_pool()
+
+
+@pytest.mark.asyncio
+async def test_fetch_embedding_raw_no_client() -> None:
+    """Test runtime error on empty connection pool."""
+    import src.api.services.opensearch_client as os_client
+    os_client._http_client = None
+    with pytest.raises(RuntimeError):
+        await _fetch_embedding_raw("foo")
+
+
+@pytest.mark.asyncio
+async def test_get_embedding_circuit_breaker_fallback() -> None:
+    """Test embedding degrades safely to zeroed array."""
+    with patch("src.api.services.opensearch_client._fetch_embedding_raw", new_callable=AsyncMock, side_effect=CircuitBreakerError):
+        emb = await get_embedding("test")
+    assert emb == [0.0] * 384
+
+
+@pytest.mark.asyncio
+async def test_fetch_rerank_raw_success() -> None:
+    """Test raw rerank scoring execution."""
+    await init_os_pool()
+    with patch("src.api.services.opensearch_client._http_client.post", new_callable=AsyncMock) as mock_post:
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"scores": [0.9, 0.8]}
+        mock_post.return_value = mock_resp
+        res = await _fetch_rerank_raw("foo", ["doc1", "doc2"])
+    assert res == [0.9, 0.8]
+    await close_os_pool()
+
+
+@pytest.mark.asyncio
+async def test_fetch_rerank_raw_invalid() -> None:
+    """Test runtime error on empty candidates."""
+    with pytest.raises(RuntimeError):
+        await _fetch_rerank_raw("foo", [])
+
+
+@pytest.mark.asyncio
+async def test_get_rerank_circuit_breaker_fallback() -> None:
+    """Test reranking degrades safely to zeroed scores."""
+    with patch("src.api.services.opensearch_client._fetch_rerank_raw", new_callable=AsyncMock, side_effect=CircuitBreakerError):
+        scores = await get_rerank_scores("test", ["a", "b"])
+    assert scores == [0.0, 0.0]

@@ -6,7 +6,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from src.api.core.config import Settings, get_settings
-from src.api.services.llm_router import LLMClient
+from src.api.services.llm_router import LLMClient, _circuit_acompletion, get_llm_client
+from circuitbreaker import CircuitBreakerError
 
 
 def test_settings_defaults() -> None:
@@ -100,3 +101,31 @@ async def test_extract_intent_cached_result() -> None:
         intent, is_cached = await client.extract_intent("healthcare companies")
     assert intent["industry"] == "Healthcare"
     assert is_cached is True
+
+
+@pytest.mark.asyncio
+async def test_extract_intent_circuit_breaker_fallback() -> None:
+    """Test that CircuitBreakerError safely falls back."""
+    client = LLMClient()
+    with (
+        patch("src.api.services.llm_router.get_cached_intent", new_callable=AsyncMock, return_value=None),
+        patch("src.api.services.llm_router._circuit_acompletion", new_callable=AsyncMock, side_effect=CircuitBreakerError),
+    ):
+        intent, is_cached = await client.extract_intent("random")
+    assert intent["requires_agent"] is False
+    assert is_cached is False
+
+
+@pytest.mark.asyncio
+async def test_circuit_acompletion_direct() -> None:
+    """Test the raw acompletion wrapper executing perfectly natively."""
+    with patch("src.api.services.llm_router.acompletion", new_callable=AsyncMock) as mock_acomp:
+        mock_acomp.return_value = "Success"
+        res = await _circuit_acompletion(model="test", messages=[], response_format=dict)
+        assert res == "Success"
+
+
+def test_get_llm_client() -> None:
+    """Test FastAPI provider instantiates natively."""
+    c = get_llm_client()
+    assert isinstance(c, LLMClient)
