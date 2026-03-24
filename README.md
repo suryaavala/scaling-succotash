@@ -8,7 +8,7 @@ This repository contains a production-grade, distributed microservices architect
 ## Architecture Stack
 - **Gateway API**: High-throughput FastAPI handling web routing and orchestration.
 - **Inference Service**: Isolated PyTorch container running `SentenceTransformers` and Cross-Encoder ranking.
-- **Asynchronous Workers**: Celery + Redis for deep agentic LLM synthesis jobs.
+- **Asynchronous Workers**: Celery + Redis for deep agentic LLM synthesis jobs with strictly enforced Dead Letter Queues (DLQ) capturing persistent fallback traces.
 - **Datastore**: OpenSearch 2.11 (capped intelligently to 1GB RAM natively).
 - **Intelligence**: LiteLLM (Gemini 3.1 Flash Lite) parsed through strict Pydantic JSON enforcement. Protected actively by `@circuit` resilience bypassing upstream stalls.
 - **Caching**: Semantic intent caching engineered with `1.0s` TCP Chaos-Resilient Circuit Breakers bypassing dead nodes safely.

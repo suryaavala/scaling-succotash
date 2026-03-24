@@ -139,3 +139,10 @@ To verify the event loops remain protected against catastrophic cache failures:
 1. **Pause the Cache Natively:** Execute `docker pause redis` or delete the Redis pod explicitly `kubectl delete pod -l app=redis`.
 2. **Execute Operations Natively:** Run semantic search queries via the Web UI (`http://localhost:8501`).
 3. **Verify TCP Deadlock Immunity:** The system relies on explicit `socket_timeout=1.0s` constraints. The initial paused TCP handshakes will snap instantly, reverting the API back to local embeddings rather than hanging the container infinitely internally.
+
+## 10. Inspecting Celery Dead Letter Queues (DLQ)
+
+If an agent workflow completely fails (e.g., severe LLM hallucination or sustained endpoint drops bypassing standard Retries), it natively routes inputs and tracebacks into the Redis `celery:dlq` Namespace.
+1. Access the Redis instance directly: `kubectl exec -it statefulset/redis -- redis-cli`
+2. Audit the formal DLQ array: `LRANGE celery:dlq 0 -1`
+3. Each indexed row houses a serialized JSON mapping including the exact `kwargs`, `task_id`, and `traceback`, guaranteeing absolutely zero trace disappearances organically.
