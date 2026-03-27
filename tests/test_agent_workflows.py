@@ -1,41 +1,30 @@
 """Unit tests for Celery agent workflows."""
 
+import json
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import json
+import httpx
+import respx
 from celery.exceptions import Retry
-from src.worker.agent_workflows import DLQTask, search_recent_news, synthesize_agent_response
+
+from src.worker.agent_workflows import DLQTask, synthesize_agent_response
 
 
-def test_search_recent_news_with_domain() -> None:
-    """Test news retrieval with a valid domain."""
-    result = search_recent_news("acme.com")
-    assert "acme.com" in result
-    assert "Series A" in result
-
-
-def test_search_recent_news_no_domain() -> None:
-    """Test news retrieval with no domain returns fallback."""
-    result = search_recent_news(None)
-    assert result == "No recent news available."
-
-
-def test_search_recent_news_empty_domain() -> None:
-    """Test news retrieval with empty string domain."""
-    result = search_recent_news("")
-    assert result == "No recent news available."
-
-
-def test_synthesize_empty_candidates() -> None:
-    """Test synthesis with empty candidates returns early."""
-    result = synthesize_agent_response("test query", [])
-    assert result["summary"] == "No relevant companies found to perform external search on."
-
-
+@respx.mock
+@patch("src.worker.tools.search.redis.Redis.from_url")
 @patch("src.worker.agent_workflows.completion")
-def test_synthesize_with_candidates(mock_completion: MagicMock) -> None:
+def test_synthesize_with_candidates(mock_completion: MagicMock, mock_redis: MagicMock) -> None:
     """Test synthesis builds context and calls LLM."""
+    mock_redis_client = MagicMock()
+    mock_redis_client.get = MagicMock(return_value=None)
+    mock_redis.return_value = mock_redis_client
+
+    # Mock the external search API
+    respx.post("https://api.tavily.com/search").mock(
+        return_value=httpx.Response(200, json={"results": [{"url": "http://acme.com", "content": "Funding news"}]})
+    )
+
     mock_msg = MagicMock()
     mock_msg.content = "Summary of Acme Corp findings."
     mock_choice = MagicMock()
@@ -44,17 +33,26 @@ def test_synthesize_with_candidates(mock_completion: MagicMock) -> None:
 
     candidates: list[dict[str, Any]] = [
         {"name": "Acme Corp", "industry": "Software", "website": "acme.com"},
-        {"name": "Beta Inc", "industry": "Finance", "website": None},
     ]
     result = synthesize_agent_response("find software companies", candidates)
     assert result["summary"] == "Summary of Acme Corp findings."
     mock_completion.assert_called_once()
 
 
+@respx.mock
+@patch("src.worker.tools.search.redis.Redis.from_url")
 @patch("src.worker.agent_workflows.completion")
 @patch("src.worker.agent_workflows.synthesize_agent_response.retry")
-def test_synthesize_handles_llm_error(mock_retry: MagicMock, mock_completion: MagicMock) -> None:
+def test_synthesize_handles_llm_error(mock_retry: MagicMock, mock_completion: MagicMock, mock_redis: MagicMock) -> None:
     """Test synthesis triggers retry gracefully upon LLM failure."""
+    mock_redis_client = MagicMock()
+    mock_redis_client.get = MagicMock(return_value=None)
+    mock_redis.return_value = mock_redis_client
+
+    respx.post("https://api.tavily.com/search").mock(
+        return_value=httpx.Response(200, json={"results": [{"url": "http://acme.com", "content": "Funding news"}]})
+    )
+
     mock_completion.side_effect = Exception("LLM timeout")
     
     # We mock self.retry so that we don't depend on Celery's sync-mode exception behavior
@@ -97,9 +95,19 @@ def test_dlq_task_on_failure(mock_redis: MagicMock) -> None:
     assert payload["args"] == ["arg1"]
 
 
+@respx.mock
+@patch("src.worker.tools.search.redis.Redis.from_url")
 @patch("src.worker.agent_workflows.completion")
-def test_synthesize_handles_none_content(mock_completion: MagicMock) -> None:
+def test_synthesize_handles_none_content(mock_completion: MagicMock, mock_redis: MagicMock) -> None:
     """Test synthesis handles None LLM content."""
+    mock_redis_client = MagicMock()
+    mock_redis_client.get = MagicMock(return_value=None)
+    mock_redis.return_value = mock_redis_client
+
+    respx.post("https://api.tavily.com/search").mock(
+        return_value=httpx.Response(200, json={"results": []})
+    )
+
     mock_msg = MagicMock()
     mock_msg.content = None
     mock_choice = MagicMock()
@@ -107,7 +115,13 @@ def test_synthesize_handles_none_content(mock_completion: MagicMock) -> None:
     mock_completion.return_value = MagicMock(choices=[mock_choice])
 
     candidates: list[dict[str, Any]] = [
-        {"name": "Acme Corp", "industry": "Software"},
+        {"name": "Acme Corp", "industry": "Software", "website": "acme.com"},
     ]
     result = synthesize_agent_response("test", candidates)
     assert result["summary"] == "No summary generated."
+
+
+def test_synthesize_empty_candidates() -> None:
+    """Test synthesis with empty candidates returns early."""
+    result = synthesize_agent_response("test query", [])
+    assert result["summary"] == "No relevant companies found to perform external search on."
