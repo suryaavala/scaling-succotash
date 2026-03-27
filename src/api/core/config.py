@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     llm_model: str = "gemini/gemini-3.1-flash-lite-preview"
     mock_llm_latency: float | None = None
 
+    # Search API
+    search_api_key: str = ""
+
     # Telemetry
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
     profiling_enabled: bool = False
