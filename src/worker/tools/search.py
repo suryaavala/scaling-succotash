@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def redis_cache(ttl: int = 43200) -> Callable[..., Any]:
     """Caches external news results in Redis."""
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         async def wrapper(company_name: str, domain: str, timeframe: str = "last 2 months") -> str:
@@ -23,17 +24,19 @@ def redis_cache(ttl: int = 43200) -> Callable[..., Any]:
                 # Cache Key: Hash the company_domain + timeframe
                 key_str = f"{domain}:{timeframe}"
                 cache_key = f"news_cache:{hashlib.md5(key_str.encode()).hexdigest()}"
-                
+
                 cached = await r.get(cache_key)
                 if cached:
                     return str(cached)
-                
+
                 result = await func(company_name, domain, timeframe)
                 await r.setex(cache_key, ttl, result)
                 return str(result)
             finally:
                 await r.aclose()  # type: ignore
+
         return wrapper
+
     return decorator
 
 
@@ -42,7 +45,7 @@ async def fetch_recent_company_news(company_name: str, domain: str, timeframe: s
     """Fetches structured, LLM-optimized news context from an external search API."""
     settings = get_settings()
     query = f"{company_name} ({domain}) recent news funding acquisitions {timeframe}"
-    
+
     try:
         # Example using a generic HTTP client to an LLM-friendly Search API
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -54,19 +57,19 @@ async def fetch_recent_company_news(company_name: str, domain: str, timeframe: s
                     "search_depth": "advanced",
                     "include_answer": False,
                     "include_raw_content": False,
-                    "max_results": 3
-                }
+                    "max_results": 3,
+                },
             )
             response.raise_for_status()
             results = response.json().get("results", [])
-            
+
             if not results:
                 return "No recent significant news found."
-                
+
             # Compile the snippets into a dense context block for the LLM
             context = "\n\n".join([f"Source: {r['url']}\nSnippet: {r['content']}" for r in results])
             return context
-            
+
     except httpx.HTTPError as e:
         logger.error(f"External search failed for {company_name}: {e}")
         return "External search temporarily unavailable."
