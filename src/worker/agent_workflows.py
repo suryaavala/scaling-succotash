@@ -58,7 +58,7 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
             domain = c.get("website") or ""
             company_name = c.get("name") or "Unknown"
             tasks.append(fetch_recent_company_news(company_name, domain))
-        return await asyncio.gather(*tasks)
+        return await asyncio.gather(*tasks)  # type: ignore[no-any-return]
 
     try:
         news_results = asyncio.run(fetch_all_news())
