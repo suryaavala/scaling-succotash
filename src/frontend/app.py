@@ -119,9 +119,12 @@ with st.sidebar:
 # --- MAIN COLUMN: Intelligent Search ---
 st.subheader("Intelligent Search")
 st.caption("E.g., 'tech companies in us' or 'startups that announced fund raising recently'")
-intelligent_query = st.chat_input("Search companies...")
 
-if intelligent_query:
+with st.form("search_form"):
+    intelligent_query = st.text_input("Search companies...", value=st.session_state.query)
+    submitted = st.form_submit_button("Search")
+
+if submitted and intelligent_query:
     st.session_state.query = intelligent_query
     try:
         with st.spinner("Executing Intelligent Routing/Analysis..."):
