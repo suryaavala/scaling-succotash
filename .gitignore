@@ -94,3 +94,4 @@ archive/
 data/
 pr_description/
 .coverage
+spec/pr_descriptions/
