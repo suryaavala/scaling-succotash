@@ -41,7 +41,10 @@ async def test_intelligent_semantic_search(api_url: str) -> None:
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-@pytest.mark.skipif(not os.getenv("GEMINI_API_KEY"), reason="GEMINI_API_KEY not set")
+@pytest.mark.skipif(
+    not os.getenv("GEMINI_API_KEY") or not os.getenv("SEARCH_API_KEY"),
+    reason="GEMINI_API_KEY or SEARCH_API_KEY not set",
+)
 async def test_intelligent_agentic_flow(api_url: str) -> None:
     """Test agentic flow dispatches a Celery task and polls for results."""
     async with httpx.AsyncClient(timeout=30.0) as client:
