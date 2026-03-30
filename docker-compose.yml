@@ -71,6 +71,7 @@ services:
     environment:
       - PROFILING_ENABLED=true
       - GEMINI_API_KEY=${GEMINI_API_KEY:?Error GEMINI_API_KEY is not set in the environment}
+      - SEARCH_API_KEY=${SEARCH_API_KEY:?Error SEARCH_API_KEY is not set in the environment}
       - OPENSEARCH_URL=http://opensearch:9200
       - REDIS_URL=redis://redis:6379/0
       - INFERENCE_URL=http://inference_service:8001
@@ -124,6 +125,7 @@ services:
     container_name: celery_worker
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY:?Error GEMINI_API_KEY is not set in the environment}
+      - SEARCH_API_KEY=${SEARCH_API_KEY:?Error SEARCH_API_KEY is not set in the environment}
       - REDIS_URL=redis://redis:6379/0
       - OPENSEARCH_URL=http://opensearch:9200
     deploy:
