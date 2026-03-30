@@ -156,6 +156,7 @@ class OpenSearchCompanyRepository(CompanyRepository):
         try:
             scores = await get_rerank_scores(query, candidate_texts)
             for i, hit in enumerate(hits):
+                hit["_os_score"] = hit.get("_score")
                 hit["_score"] = scores[i]
             hits.sort(key=lambda x: x["_score"], reverse=True)
         except Exception as e:
@@ -166,6 +167,8 @@ class OpenSearchCompanyRepository(CompanyRepository):
         for hit in top_10:
             src = dict(hit.get("_source", {}))
             src["id"] = hit.get("_id")
+            src["re_rank_score"] = hit.get("_score")
+            src["knn_score"] = hit.get("_os_score")
             results.append(src)
 
         return results

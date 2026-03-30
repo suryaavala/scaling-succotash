@@ -66,6 +66,8 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
         logger.error(f"External search failed: {e}")
         news_results = ["External search temporarily unavailable."] * len(candidates[:5])
 
+    logger.info(f"News results: {news_results}")
+
     context = ""
     for c, news in zip(candidates[:5], news_results):
         context += f"Company: {c.get('name')} | Industry: {c.get('industry')} | News: {news}\n\n"
@@ -90,7 +92,7 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
             ],
         )
         summary = response.choices[0].message.content or "No summary generated."
-        return {"summary": summary}
+        return {"summary": summary, "raw_markdown": context}
     except Exception as e:
         logger.error(f"Agent synthesis failed: {e}")
         raise self.retry(exc=e, countdown=1)

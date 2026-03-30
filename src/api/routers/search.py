@@ -35,7 +35,13 @@ async def deterministic_search(
 ) -> SearchResponse:
     """Execute a structured filter-based search."""
     strategy = DeterministicSearchStrategy()
-    return await strategy.execute(request, repo)
+    response_payload = await strategy.execute(request, repo)
+    response_payload.diagnostics = {
+        "route": "Deterministic",
+        "intent": {},
+        "scores": [],
+    }
+    return response_payload
 
 
 _flight_cache: Dict[str, asyncio.Event] = {}
@@ -70,6 +76,7 @@ async def intelligent_search(
 
         candidates = await repo.two_stage_retrieval(query, intent, vector)
 
+        strategy_name = "AgenticSearch" if intent.get("requires_agent") else "SemanticSearch"
         strategy: SearchStrategy
         if intent.get("requires_agent"):
             strategy = AgenticSearchStrategy()
@@ -78,6 +85,22 @@ async def intelligent_search(
 
         context = SearchContext(strategy)
         result = await context.execute_search(query, candidates)
+
+        # Build diagnostics
+        diagnostics = {
+            "route": strategy_name,
+            "intent": intent,
+            "scores": [
+                {
+                    "company_id": c.get("id"),
+                    "name": c.get("name"),
+                    "re_rank_score": c.get("re_rank_score"),
+                    "knn_score": c.get("knn_score"),
+                }
+                for c in candidates
+            ],
+        }
+        result.diagnostics = diagnostics
 
         await set_cached_search(query, result.model_dump())
         return result
