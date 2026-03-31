@@ -67,23 +67,23 @@ fetch_tags()
 
 # --- SIDEBAR: Deterministic Filters ---
 with st.sidebar:
-    if st.button("Clear Search", type="primary"):
+    if st.button("Clear Search", type="primary", key="btn_clear_ui"):
         clear_search()
         st.rerun()
 
     st.header("Standard Filters")
-    name_filter = st.text_input("Company Name")
-    industry_filter = st.text_input("Industry")
+    name_filter = st.text_input("Company Name", key="filter_name_ui")
+    industry_filter = st.text_input("Industry", key="filter_industry_ui")
     size_filter = st.selectbox(
         "Company Size",
         ["", "1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"],  # noqa: E501
     )
-    country_filter = st.text_input("Country")
+    country_filter = st.text_input("Country", key="filter_country_ui")
     tag_filter = st.selectbox("Filter by Tag", [""] + st.session_state.tags)
     year_from = st.number_input("Founded From", min_value=1800, max_value=2026, value=None, placeholder="YYYY")
     year_to = st.number_input("Founded To", min_value=1800, max_value=2026, value=None, placeholder="YYYY")
 
-    if st.button("Apply Filters"):
+    if st.button("Apply Filters", key="btn_apply_filters_ui"):
         from typing import Any
 
         payload: dict[str, Any] = {}
@@ -121,7 +121,7 @@ st.subheader("Intelligent Search")
 st.caption("E.g., 'tech companies in us' or 'startups that announced fund raising recently'")
 
 with st.form("search_form"):
-    intelligent_query = st.text_input("Search companies...", value=st.session_state.query)
+    intelligent_query = st.text_input("Search companies...", value=st.session_state.query, key="intelligent_input_ui")
     submitted = st.form_submit_button("Search")
 
 if submitted and intelligent_query:
