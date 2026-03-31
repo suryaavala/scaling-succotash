@@ -42,6 +42,12 @@ spec:
                   name: api-secrets
                   key: GEMINI_API_KEY
                   optional: true
+            - name: SEARCH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secrets
+                  key: SEARCH_API_KEY
+                  optional: true
             - name: INFERENCE_URL
               value: "http://inference-service:8001"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

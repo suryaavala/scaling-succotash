@@ -6,6 +6,7 @@ from typing import Any, Dict, List, cast
 import httpx
 from circuitbreaker import CircuitBreakerError, circuit
 from opensearchpy import AsyncOpenSearch
+from opensearchpy.exceptions import NotFoundError
 
 from src.api.core.config import Settings, get_settings
 from src.api.domain.interfaces import CompanyRepository
@@ -194,9 +195,13 @@ class OpenSearchCompanyRepository(CompanyRepository):
         assert self.client is not None, "OpenSearch client is not initialized"
         agg_query = {
             "size": 0,
-            "aggs": {"unique_tags": {"terms": {"field": "tags", "size": 1000}}},
+            "aggs": {"unique_tags": {"terms": {"field": "tags.keyword", "size": 1000}}},
         }
-        response = await self.client.search(index=self._index, body=agg_query)
+        try:
+            response = await self.client.search(index=self._index, body=agg_query)
+        except NotFoundError:
+            return []
+            
         if response.get("hits", {}).get("total", {}).get("value", 0) > 0:
             aggs = response.get("aggregations", {})
             tags_agg = aggs.get("unique_tags", {})

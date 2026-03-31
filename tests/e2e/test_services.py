@@ -197,10 +197,51 @@ async def test_get_all_tags(api_url: str) -> None:
     """Test the tags endpoint returns a list."""
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(f"{api_url}/api/v2/tags")
-        if resp.status_code == 500:
-            pytest.skip("Tags endpoint returned 500 (OpenSearch likely not ready)")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
+
+
+@pytest.mark.e2e
+@pytest.mark.asyncio
+async def test_full_tag_lifecycle(api_url: str, opensearch_url: str) -> None:
+    """E2E flow: Create a dummy doc, tag it, verify tag retrieval, then clean up."""
+    dummy_id = "e2e-tag-test-company"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        idx_check = await client.head(f"{opensearch_url}/companies")
+        if idx_check.status_code == 404:
+            await client.put(f"{opensearch_url}/companies", json={"settings": {"index": {"knn": True}}})
+            
+        put_resp = await client.put(
+            f"{opensearch_url}/companies/_doc/{dummy_id}",
+            json={
+                "name": "E2E Tag Company",
+                "domain": "tagtest.example.com",
+            }
+        )
+        assert put_resp.status_code in (200, 201), "Failed to explicitly create dummy doc"
+        await client.post(f"{opensearch_url}/companies/_refresh")
+    
+    unique_tag_name = f"e2e_tag_{dummy_id}"
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        tag_resp = await client.post(
+            f"{api_url}/api/v2/companies/{dummy_id}/tags",
+            json={"tag": unique_tag_name}
+        )
+        assert tag_resp.status_code == 200
+        
+        # Brief pause for OS refresh behavior following painless scripts
+        await asyncio.sleep(2.0)
+        
+        get_tags_resp = await client.get(f"{api_url}/api/v2/tags")
+        assert get_tags_resp.status_code == 200
+        tags_list = get_tags_resp.json()
+        assert isinstance(tags_list, list)
+        assert unique_tag_name in tags_list, f"Tag {unique_tag_name} not found in tags list"
+
+    # Clean up
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        await client.delete(f"{opensearch_url}/companies/_doc/{dummy_id}")
 
 
 # --- Intelligent Search Variations ---

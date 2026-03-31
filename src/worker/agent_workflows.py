@@ -1,5 +1,6 @@
 """Worker background tasks mapping agent workflows natively."""
 
+import asyncio
 import json
 import logging
 import os
@@ -9,18 +10,13 @@ import redis
 from celery import Celery, Task
 from litellm import completion
 
+from src.worker.tools.search import fetch_recent_company_news
+
 logger = logging.getLogger("worker")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 celery_app = Celery("agent_workflows", broker=REDIS_URL, backend=REDIS_URL)
-
-
-def search_recent_news(company_domain: str | None) -> str:
-    """Invokes simulated external intelligence retrieval."""
-    if not company_domain:
-        return "No recent news available."
-    return f"Recent news for {company_domain}: Announced $10M Series A funding last month."
 
 
 class DLQTask(Task):  # type: ignore[misc]
@@ -55,17 +51,31 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
     if not candidates:
         return {"summary": "No relevant companies found to perform external search on."}
 
+    # Fetch news concurrently for top 5 candidates
+    async def fetch_all_news(query: str) -> list[str]:
+        tasks = []
+        for c in candidates[:5]:
+            domain = c.get("website") or ""
+            company_name = c.get("name") or "Unknown"
+            tasks.append(fetch_recent_company_news(company_name, domain, query))
+        return await asyncio.gather(*tasks)  # type: ignore[no-any-return]
+
+    try:
+        news_results = asyncio.run(fetch_all_news(query))
+    except Exception as e:
+        logger.error(f"External search failed: {e}")
+        news_results = ["External search temporarily unavailable."] * len(candidates[:5])
+
     context = ""
-    for c in candidates:
-        domain = c.get("website")
-        news = search_recent_news(domain)
+    for c, news in zip(candidates[:5], news_results):
         context += f"Company: {c.get('name')} | Industry: {c.get('industry')} | News: {news}\n\n"
 
     prompt = (
         f"Context:\n{context}\n\n"
         f"Query: {query}\n\n"
-        "Please provide a helpful natural language summary "
-        "answering the user's query using only the provided context."
+        "You are an Information Retrieval expert. Using ONLY the provided context below, summarize "
+        "recent announcements for these companies. Do not hallucinate. If the context "
+        "does not contain funding news, state that explicitly. Provide citations using URLs."
     )
 
     try:

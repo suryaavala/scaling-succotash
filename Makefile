@@ -169,13 +169,15 @@ docker-build-local:
 
 deploy:
 	@if [ -z "$$GEMINI_API_KEY" ]; then echo "Error: GEMINI_API_KEY is not set in environment"; exit 1; fi
-	kubectl create secret generic api-secrets --from-literal=GEMINI_API_KEY=$$GEMINI_API_KEY --dry-run=client -o yaml | kubectl apply -f -
+	@if [ -z "$$SEARCH_API_KEY" ]; then echo "Error: SEARCH_API_KEY is not set in environment"; exit 1; fi
+	kubectl create secret generic api-secrets --from-literal=GEMINI_API_KEY=$$GEMINI_API_KEY --from-literal=SEARCH_API_KEY=$$SEARCH_API_KEY --dry-run=client -o yaml | kubectl apply -f -
 	kubectl apply -k k8s/base
 
 # wait all the services to be running in default name spaces
 deploy-wait:
 	@if [ -z "$$GEMINI_API_KEY" ]; then echo "Error: GEMINI_API_KEY is not set in environment"; exit 1; fi
-	kubectl create secret generic api-secrets --from-literal=GEMINI_API_KEY=$$GEMINI_API_KEY --dry-run=client -o yaml | kubectl apply -f -
+	@if [ -z "$$SEARCH_API_KEY" ]; then echo "Error: SEARCH_API_KEY is not set in environment"; exit 1; fi
+	kubectl create secret generic api-secrets --from-literal=GEMINI_API_KEY=$$GEMINI_API_KEY --from-literal=SEARCH_API_KEY=$$SEARCH_API_KEY --dry-run=client -o yaml | kubectl apply -f -
 	kubectl apply -k k8s/base
 	kubectl wait --for=condition=Ready pod --all -n default --timeout=700s
  
@@ -209,6 +211,7 @@ k8s-debug-dns:
 # Docker Compose Operations (Legacy)
 up:
 	@if [ -z "$$GEMINI_API_KEY" ]; then echo "Error: GEMINI_API_KEY is not set in environment"; exit 1; fi
+	@if [ -z "$$SEARCH_API_KEY" ]; then echo "Error: SEARCH_API_KEY is not set in environment"; exit 1; fi
 	docker compose up --build -d --wait --wait-timeout 360
 
 down:
