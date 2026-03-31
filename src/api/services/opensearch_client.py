@@ -204,7 +204,7 @@ class OpenSearchCompanyRepository(CompanyRepository):
             response = await self.client.search(index=self._index, body=agg_query)
         except NotFoundError:
             return []
-            
+
         if response.get("hits", {}).get("total", {}).get("value", 0) > 0:
             aggs = response.get("aggregations", {})
             tags_agg = aggs.get("unique_tags", {})

@@ -192,9 +192,9 @@ if st.session_state.results:
     match_query = st.session_state.query
 
     for company in st.session_state.results:
-        highlighted_name = highlight_text(company.get('name', 'Unknown'), match_query)
-        highlighted_ind = highlight_text(company.get('industry', 'Unknown'), match_query)
-        
+        highlighted_name = highlight_text(company.get("name", "Unknown"), match_query)
+        highlighted_ind = highlight_text(company.get("industry", "Unknown"), match_query)
+
         with st.expander(
             f"{company['name'].title()} - {company.get('industry', 'Unknown')}",
             expanded=False,
