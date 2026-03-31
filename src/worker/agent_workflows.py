@@ -52,16 +52,16 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
         return {"summary": "No relevant companies found to perform external search on."}
 
     # Fetch news concurrently for top 5 candidates
-    async def fetch_all_news() -> list[str]:
+    async def fetch_all_news(query: str) -> list[str]:
         tasks = []
         for c in candidates[:5]:
             domain = c.get("website") or ""
             company_name = c.get("name") or "Unknown"
-            tasks.append(fetch_recent_company_news(company_name, domain))
+            tasks.append(fetch_recent_company_news(company_name, domain, query))
         return await asyncio.gather(*tasks)  # type: ignore[no-any-return]
 
     try:
-        news_results = asyncio.run(fetch_all_news())
+        news_results = asyncio.run(fetch_all_news(query))
     except Exception as e:
         logger.error(f"External search failed: {e}")
         news_results = ["External search temporarily unavailable."] * len(candidates[:5])
@@ -73,7 +73,7 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
     prompt = (
         f"Context:\n{context}\n\n"
         f"Query: {query}\n\n"
-        "You are a financial analyst. Using ONLY the provided context below, summarize "
+        "You are an Information Retrieval expert. Using ONLY the provided context below, summarize "
         "recent announcements for these companies. Do not hallucinate. If the context "
         "does not contain funding news, state that explicitly. Provide citations using URLs."
     )

@@ -41,10 +41,10 @@ def redis_cache(ttl: int = 43200) -> Callable[..., Any]:
 
 
 @redis_cache(ttl=43200)
-async def fetch_recent_company_news(company_name: str, domain: str, timeframe: str = "last 2 months") -> str:
+async def fetch_recent_company_news(company_name: str, domain: str, search_string: str) -> str:
     """Fetches structured, LLM-optimized news context from an external search API."""
     settings = get_settings()
-    query = f"{company_name} ({domain}) recent news funding acquisitions {timeframe}"
+    query = f"{search_string} for the following company: {company_name} ({domain})"
 
     try:
         # Example using a generic HTTP client to an LLM-friendly Search API
