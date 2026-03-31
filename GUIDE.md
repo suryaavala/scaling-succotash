@@ -272,3 +272,10 @@ RequestsInstrumentor().instrument()
 ```
 
 When you open `http://localhost:16686` (Jaeger UI), you visually dissect precisely execution lengths natively tracing headers safely passed exactly from the FastAPI Gateway across directly into the PyTorch Inference service measuring millisecond bottlenecks dynamically.
+
+### UI Glass-Box Observability (Execution Trace)
+In addition to backend telemetry, the architecture exposes the "brain" of the search engine transparently to the frontend via the **"🔍 View Search Execution Trace"** expander panel. This allows end-users and reviewers to investigate precisely *why* a document was routed and ranked mathematically.
+It interactively renders:
+- The actual `Intent` JSON parsed directly from the LLM router safely.
+- The comparative open `k-NN` raw vectors alongside the Two-Stage reranked `Cross-Encoder` precision scores.
+- Any raw overarching contextual markdown cleanly executed seamlessly from the Agentic Celery Queue.

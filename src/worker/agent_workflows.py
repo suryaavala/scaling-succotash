@@ -90,7 +90,7 @@ def synthesize_agent_response(self: Any, query: str, candidates: list[Dict[str, 
             ],
         )
         summary = response.choices[0].message.content or "No summary generated."
-        return {"summary": summary}
+        return {"summary": summary, "raw_markdown": context}
     except Exception as e:
         logger.error(f"Agent synthesis failed: {e}")
         raise self.retry(exc=e, countdown=1)

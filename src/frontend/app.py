@@ -1,7 +1,9 @@
 """Streamlit application mappings."""
 
 import os
+import re
 
+import pandas as pd
 import requests
 import streamlit as st
 
@@ -16,6 +18,21 @@ if "agent_answer" not in st.session_state:
     st.session_state.agent_answer = None
 if "tags" not in st.session_state:
     st.session_state.tags = []
+if "query" not in st.session_state:
+    st.session_state.query = ""
+if "diagnostics" not in st.session_state:
+    st.session_state.diagnostics = None
+if "agent_markdown" not in st.session_state:
+    st.session_state.agent_markdown = None
+
+
+def clear_search() -> None:
+    """Clear all active sessions safely cleanly manually fluently."""
+    st.session_state.results = []
+    st.session_state.agent_answer = None
+    st.session_state.query = ""
+    st.session_state.diagnostics = None
+    st.session_state.agent_markdown = None
 
 
 def fetch_tags() -> None:
@@ -38,23 +55,35 @@ def add_tag(company_id: str, new_tag: str) -> None:
             st.error(f"Error adding tag: {e}")
 
 
+def highlight_text(text: str, query: str) -> str:
+    """Highlight matched text cleanly natively gracefully brightly."""
+    if not query or not text:
+        return text or "Unknown"
+    pattern = re.compile(f"({re.escape(query)})", re.IGNORECASE)
+    return pattern.sub(r"**\1**", str(text))
+
+
 fetch_tags()
 
 # --- SIDEBAR: Deterministic Filters ---
 with st.sidebar:
+    if st.button("Clear Search", type="primary", key="btn_clear_ui"):
+        clear_search()
+        st.rerun()
+
     st.header("Standard Filters")
-    name_filter = st.text_input("Company Name")
-    industry_filter = st.text_input("Industry")
+    name_filter = st.text_input("Company Name", key="filter_name_ui")
+    industry_filter = st.text_input("Industry", key="filter_industry_ui")
     size_filter = st.selectbox(
         "Company Size",
         ["", "1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"],  # noqa: E501
     )
-    country_filter = st.text_input("Country")
+    country_filter = st.text_input("Country", key="filter_country_ui")
     tag_filter = st.selectbox("Filter by Tag", [""] + st.session_state.tags)
     year_from = st.number_input("Founded From", min_value=1800, max_value=2026, value=None, placeholder="YYYY")
     year_to = st.number_input("Founded To", min_value=1800, max_value=2026, value=None, placeholder="YYYY")
 
-    if st.button("Apply Filters"):
+    if st.button("Apply Filters", key="btn_apply_filters_ui"):
         from typing import Any
 
         payload: dict[str, Any] = {}
@@ -74,27 +103,38 @@ with st.sidebar:
             payload["year_to"] = year_to
 
         try:
-            r = requests.post(f"{API_URL}/search", json=payload)
-            if r.status_code == 200:
-                data = r.json()
-                st.session_state.results = data.get("results", [])
-                st.session_state.agent_answer = None
+            with st.spinner("Executing Deterministic Routing..."):
+                r = requests.post(f"{API_URL}/search", json=payload)
+                if r.status_code == 200:
+                    data = r.json()
+                    st.session_state.results = data.get("results", [])
+                    st.session_state.diagnostics = data.get("diagnostics")
+                    st.session_state.agent_answer = None
+                    st.session_state.agent_markdown = None
+                    # Fallback query state for highlighting
+                    st.session_state.query = name_filter or industry_filter or ""
         except Exception:
             st.error("Failed to connect to API.")
 
 # --- MAIN COLUMN: Intelligent Search ---
 st.subheader("Intelligent Search")
 st.caption("E.g., 'tech companies in us' or 'startups that announced fund raising recently'")
-intelligent_query = st.chat_input("Search companies...")
 
-if intelligent_query:
+with st.form("search_form"):
+    intelligent_query = st.text_input("Search companies...", value=st.session_state.query, key="intelligent_input_ui")
+    submitted = st.form_submit_button("Search")
+
+if submitted and intelligent_query:
+    st.session_state.query = intelligent_query
     try:
-        with st.spinner("Analyzing intent and searching..."):
+        with st.spinner("Executing Intelligent Routing/Analysis..."):
             r = requests.post(f"{API_URL}/search/intelligent", json={"query": intelligent_query})
             if r.status_code == 200:
                 data = r.json()
                 st.session_state.results = data.get("results", [])
+                st.session_state.diagnostics = data.get("diagnostics")
                 st.session_state.agent_answer = None
+                st.session_state.agent_markdown = None
 
                 task_id = data.get("agentic_task_id")
                 if task_id:
@@ -110,6 +150,7 @@ if intelligent_query:
                                     result_obj = status_data.get("result", {})
                                     if isinstance(result_obj, dict):
                                         st.session_state.agent_answer = result_obj.get("summary")
+                                        st.session_state.agent_markdown = result_obj.get("raw_markdown")
                                     else:
                                         st.session_state.agent_answer = str(result_obj)
                                     break
@@ -121,30 +162,58 @@ if intelligent_query:
     except Exception:
         st.error("Failed to connect to Intelligent API.")
 
+# --- GLASS-BOX OBSERVABILITY ---
+if st.session_state.diagnostics:
+    with st.expander("🔍 View Search Execution Trace", expanded=False):
+        d = st.session_state.diagnostics
+        route = d.get("route", "Unknown")
+        st.metric(label="Routing Strategy", value=route)
+
+        st.write("**Parsed Extracted Intent:**")
+        st.json(d.get("intent", {}))
+
+        scores = d.get("scores", [])
+        if scores:
+            st.write("**Top Retrieved Candidates (Scores):**")
+            df = pd.DataFrame(scores)
+            st.dataframe(df)
+
+        if st.session_state.agent_markdown:
+            st.info("**External API Markdown Context (Tavily):**\n\n" + str(st.session_state.agent_markdown))
+
 # --- RESULTS RENDERING ---
 if st.session_state.agent_answer:
-    st.info(f"**Agent Insight:** {st.session_state.agent_answer}")
+    st.success(f"**Agent Insight:** {st.session_state.agent_answer}")
 
-st.subheader(f"Search Results ({len(st.session_state.results)} found)")
+if st.session_state.results:
+    st.subheader(f"Search Results ({len(st.session_state.results)} found)")
 
-for company in st.session_state.results:
-    with st.expander(
-        f"{company['name'].title()} - {company.get('industry', 'Unknown')}",
-        expanded=False,
-    ):
-        st.write(f"**Domain:** {company.get('domain')}")
-        st.write(f"**Location:** {company.get('locality')}, {company.get('country')}")
-        st.write(f"**Founded:** {company.get('year_founded')} | **Size:** {company.get('size_range')}")
+    # Extract single keyword for simple matching/highlighting
+    match_query = st.session_state.query
 
-        tags = company.get("tags", [])
-        if tags:
-            st.write("**Tags:** " + ", ".join([f"`{t}`" for t in tags]))
+    for company in st.session_state.results:
+        highlighted_name = highlight_text(company.get("name", "Unknown"), match_query)
+        highlighted_ind = highlight_text(company.get("industry", "Unknown"), match_query)
 
-        new_tag = st.text_input(f"Add Tag for {company['name']}", key=f"tag_{company['id']}")
-        if st.button("Save Tag", key=f"btn_{company['id']}"):
-            add_tag(company["id"], new_tag)
-            st.success(f"Added tag '{new_tag}' to {company['name']}!")
-            st.rerun()
+        with st.expander(
+            f"{company['name'].title()} - {company.get('industry', 'Unknown')}",
+            expanded=False,
+        ):
+            st.markdown(f"**Name:** {highlighted_name}")
+            st.markdown(f"**Industry:** {highlighted_ind}")
+            st.write(f"**Domain:** {company.get('domain')}")
+            st.write(f"**Location:** {company.get('locality')}, {company.get('country')}")
+            st.write(f"**Founded:** {company.get('year_founded')} | **Size:** {company.get('size_range')}")
+
+            tags = company.get("tags", [])
+            if tags:
+                st.write("**Tags:** " + ", ".join([f"`{t}`" for t in tags]))
+
+            new_tag = st.text_input(f"Add Tag for {company['name']}", key=f"tag_{company['id']}")
+            if st.button("Save Tag", key=f"btn_{company['id']}"):
+                add_tag(company["id"], new_tag)
+                st.success(f"Added tag '{new_tag}' to {company['name']}!")
+                st.rerun()
 
 # --- All Tags ---
 if st.session_state.tags:

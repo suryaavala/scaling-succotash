@@ -33,5 +33,8 @@ def test_intelligent_search() -> None:
     assert "results" in data
     assert len(data["results"]) == 2
     assert data["results"][0]["name"] == "Test1"
+    
+    assert "diagnostics" in data
+    assert data["diagnostics"]["route"] == "SemanticSearch"
 
     app.dependency_overrides.clear()

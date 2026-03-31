@@ -13,6 +13,7 @@ This repository contains a production-grade, distributed microservices architect
 - **Intelligence**: LiteLLM (Gemini 3.1 Flash Lite) parsed through strict Pydantic JSON enforcement. Protected actively by `@circuit` resilience bypassing upstream stalls.
 - **Caching**: Semantic intent caching engineered with `1.0s` TCP Chaos-Resilient Circuit Breakers bypassing dead nodes safely.
 - **Observability**: OpenTelemetry distributed tracing exported to a native Jaeger instance.
+- **Glass-Box UI Trace**: The Streamlit dashboard features an interactive, transparent expander (`🔍 View Search Execution Trace`) presenting LLM intent routing metrics and Two-Stage Cross-Encoder scoring structures directly to end-users natively.
 - **Tooling (V4)**: `uv` for dependency management, `ruff` for linting, and `mypy` for strict typing inside a native `src/` layout.
 
 ## V4 Directory Layout

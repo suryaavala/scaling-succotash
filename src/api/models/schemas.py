@@ -23,6 +23,7 @@ class SearchResponse(BaseModel):
     """Schema for legacy string filters."""
 
     results: List[Dict[str, Any]]
+    diagnostics: Optional[Dict[str, Any]] = None
 
 
 class IntelligentSearchRequest(BaseModel):
@@ -36,6 +37,7 @@ class IntelligentSearchResponse(BaseModel):
 
     results: List[Dict[str, Any]]
     agentic_task_id: Optional[str] = None
+    diagnostics: Optional[Dict[str, Any]] = None
 
 
 class AgenticSearchRequest(BaseModel):
@@ -50,7 +52,7 @@ class TaskStatusResponse(BaseModel):
 
     task_id: str
     status: str
-    result: Optional[str] = None
+    result: Optional[Any] = None
 
 
 class TagRequest(BaseModel):
