@@ -36,7 +36,7 @@ async def test_fetch_recent_company_news_cache_miss(mock_redis, mock_post, mock_
     }
     mock_post.return_value = mock_resp
 
-    res = await fetch_recent_company_news("TechCorp", "techcorp.ai", "recent news")
+    res = await fetch_recent_company_news("TechCorp techcorp.ai recent news")
     assert "Company raises series A." in res
     assert mock_redis_instance.setex.called
 
@@ -53,7 +53,7 @@ async def test_fetch_recent_company_news_cache_hit(mock_redis, mock_post, mock_g
     mock_redis_instance.get.return_value = "Cached News Payload"
     mock_redis.return_value = mock_redis_instance
 
-    res = await fetch_recent_company_news("TechCorp", "techcorp.ai", "recent news")
+    res = await fetch_recent_company_news("TechCorp techcorp.ai recent news")
     assert res == "Cached News Payload"
     mock_post.assert_not_called()
     assert not mock_redis_instance.setex.called
@@ -75,7 +75,7 @@ async def test_fetch_recent_company_news_empty(mock_redis, mock_post, mock_get_s
     mock_resp.json.return_value = {"results": []}
     mock_post.return_value = mock_resp
 
-    res = await fetch_recent_company_news("EmptyCorp", "empty.io", "recent news")
+    res = await fetch_recent_company_news("EmptyCorp empty.io recent news")
     assert res == "No recent significant news found."
 
 
@@ -93,5 +93,5 @@ async def test_fetch_recent_company_news_http_err(mock_redis, mock_post, mock_ge
 
     mock_post.side_effect = httpx.HTTPStatusError("500 Server Error", request=AsyncMock(), response=AsyncMock())
 
-    res = await fetch_recent_company_news("FailCorp", "fail.io", "recent news")
+    res = await fetch_recent_company_news("FailCorp fail.io recent news")
     assert res == "External search temporarily unavailable."

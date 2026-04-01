@@ -72,7 +72,7 @@ def test_frontend_intelligent_search_agentic_flow(mock_sleep, mock_get, mock_pos
         if "tags" in url:
             return MockResponse(["tag1"])
         if "agentic" in url:
-            return MockResponse({"status": "SUCCESS", "result": {"summary": "Mock Insight", "raw_markdown": "Mock MD"}})
+            return MockResponse({"status": "SUCCESS", "result": {"summary": "Mock Insight", "raw_markdown": "Mock MD", "leads": [{"id": "UUID-1", "name": "LeadCompany"}]}})
         return MockResponse({})
 
     mock_get.side_effect = mock_get_behavior
@@ -97,6 +97,7 @@ def test_frontend_intelligent_search_agentic_flow(mock_sleep, mock_get, mock_pos
     assert at.session_state.agent_answer == "Mock Insight"
     assert at.session_state.agent_markdown == "Mock MD"
     assert len(at.session_state.results) == 1
+    assert at.session_state.results[0]["name"] == "LeadCompany"
 
 
 @patch("requests.post")
