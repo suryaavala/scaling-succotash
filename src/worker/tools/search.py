@@ -16,20 +16,19 @@ def redis_cache(ttl: int = 43200) -> Callable[..., Any]:
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        async def wrapper(company_name: str, domain: str, timeframe: str = "last 2 months") -> str:
+        async def wrapper(query: str) -> str:
             settings = get_settings()
             # using an async redis client
             r = redis.Redis.from_url(settings.redis_url, decode_responses=True)
             try:
-                # Cache Key: Hash the company_domain + timeframe
-                key_str = f"{domain}:{timeframe}"
-                cache_key = f"news_cache:{hashlib.md5(key_str.encode()).hexdigest()}"
+                # Cache Key: Hash the query
+                cache_key = f"news_cache:{hashlib.md5(query.encode()).hexdigest()}"
 
                 cached = await r.get(cache_key)
                 if cached:
                     return str(cached)
 
-                result = await func(company_name, domain, timeframe)
+                result = await func(query)
                 await r.setex(cache_key, ttl, result)
                 return str(result)
             finally:
@@ -41,10 +40,10 @@ def redis_cache(ttl: int = 43200) -> Callable[..., Any]:
 
 
 @redis_cache(ttl=43200)
-async def fetch_recent_company_news(company_name: str, domain: str, search_string: str) -> str:
+async def fetch_recent_company_news(query: str) -> str:
     """Fetches structured, LLM-optimized news context from an external search API."""
     settings = get_settings()
-    query = f"{search_string} for the following company: {company_name} ({domain})"
+    # query = f"{search_string} for the following company: {company_name} ({domain})"
 
     try:
         # Example using a generic HTTP client to an LLM-friendly Search API
@@ -71,5 +70,5 @@ async def fetch_recent_company_news(company_name: str, domain: str, search_strin
             return context
 
     except httpx.HTTPError as e:
-        logger.error(f"External search failed for {company_name}: {e}")
+        logger.error(f"External search failed for query '{query}': {e}")
         return "External search temporarily unavailable."

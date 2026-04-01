@@ -151,6 +151,8 @@ if submitted and intelligent_query:
                                     if isinstance(result_obj, dict):
                                         st.session_state.agent_answer = result_obj.get("summary")
                                         st.session_state.agent_markdown = result_obj.get("raw_markdown")
+                                        if "leads" in result_obj:
+                                            st.session_state.results = result_obj.get("leads", [])
                                     else:
                                         st.session_state.agent_answer = str(result_obj)
                                     break

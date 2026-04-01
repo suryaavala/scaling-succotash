@@ -74,11 +74,13 @@ async def intelligent_search(
         if is_cached:
             response.headers["X-Cache-Hit"] = "true"
 
-        candidates = await repo.two_stage_retrieval(query, intent, vector)
+        is_agentic = intent.get("requires_agent", False)
 
-        strategy_name = "AgenticSearch" if intent.get("requires_agent") else "SemanticSearch"
+        candidates = [] if is_agentic else await repo.two_stage_retrieval(query, intent, vector)
+
+        strategy_name = "AgenticSearch" if is_agentic else "SemanticSearch"
         strategy: SearchStrategy
-        if intent.get("requires_agent"):
+        if is_agentic:
             strategy = AgenticSearchStrategy()
         else:
             strategy = SemanticSearchStrategy()
